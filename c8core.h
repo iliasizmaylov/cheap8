@@ -2,7 +2,7 @@
 #ifndef _C8CORE_H_
 #define _C8CORE_H_
 
-#include "input.h"
+#include "types.h"
 
 #define MEMORY_SIZE					(1 << 12)
 
@@ -82,6 +82,7 @@ unsigned char fontset[FONTSET_SIZE] = {
 #define CUSTOM_FLAG_MASK_ERROR		0x7F
 
 #define SET_CUSTOM_FLAG(dest, source) 	dest->customFlags |= source
+#define CHECK_CUSTOM_FLAG(dest, source)	dest->customFlags & source
 
 typedef struct _C8core {
 	BYTE memory[MEMORY_SIZE];				// RAM
@@ -102,12 +103,12 @@ typedef struct _C8core {
 
 	BYTE customFlags;						// Some custom flags that might come in handy (idk)
 
-	Uint64 prevCycleTicks;					// Ticks (milliseconds) since start til previous cycle
-	Uint64 prevTimerTicks;					// Ticks (milliseconds) since last timer decrease
+	Uint64 prevCycleTicks					// Ticks (milliseconds) since start til previous cycle
+	Uint64 prevTimerTicks					// Ticks (milliseconds) since last timer decrease
 } C8core;
 
 VM_RESULT loadROM(C8core *core, FILE *ROM);
 VM_RESULT initCore(C8core **m_core, FILE *ROM);
-VM_RESULT dumpCustomFlags(C8core *core);
+VM_RESULT coreCycle(C8core *core);
 
 #endif
