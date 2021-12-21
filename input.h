@@ -1,0 +1,33 @@
+#ifndef _INPUT_H_
+#define _INPUT_H_
+
+#include "types.h"
+
+#define KEYPAD_KEY_COUNT	16
+#define WRONG_INPUT			0xFFFF
+
+const BYTE KEYPAD_MAP[KEYPAD_KEY_COUNT] = {
+	SDL_SCANCODE_0,
+	SDL_SCANCODE_1,
+	SDL_SCANCODE_2,
+	SDL_SCANCODE_3,
+	SDL_SCANCODE_Q,
+	SDL_SCANCODE_W,
+	SDL_SCANCODE_E,
+	SDL_SCANCODE_A,
+	SDL_SCANCODE_S,
+	SDL_SCANCODE_D,
+	SDL_SCANCODE_Z,
+	SDL_SCANCODE_C,
+	SDL_SCANCODE_4,
+	SDL_SCANCODE_R,
+	SDL_SCANCODE_F,
+	SDL_SCANCODE_V
+};
+
+WORD getKeyBitmask(BYTE scancode);
+
+// TODO: move this to vm.h
+void pollEvent(WORD *keypadState);
+
+#endif
