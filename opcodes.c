@@ -1,11 +1,11 @@
 #include "opcodes.h"
 
 void processOpcode(C8core *core) {
-	BYTE xParam = 0x00;
-	BYTE yParam = 0x00;
-	WORD nParam = 0x0000;
+	WORD xParam = PARAMETER_UNUSED;
+	WORD yParam = PARAMETER_UNUSED;
+	WORD nParam = PARAMETER_UNUSED;
 	const Opcode *opcode = NULL;
-	WORD opcodeRaw = core->memory[core->PC];
+	WORD opcodeRaw = core->opcode;
 
 	for (BYTE i = 0; i < OPCODE_COUNT; i++) {
 		if ((opcodeRaw & OPCODES[i].opcodeMask) == OPCODES[i].opcodeId) {
@@ -19,12 +19,16 @@ void processOpcode(C8core *core) {
 		return;
 	}
 	
-	xParam = opcode->xParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->xParamMask) >> 8 : 0x00;
-	yParam = opcode->yParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->yParamMask) >> 4 : 0x00;
-	nParam = opcode->nParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->nParamMask) : 0x0000;
+	xParam = opcode->xParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->xParamMask) >> 8 : PARAMETER_UNUSED;
+	yParam = opcode->yParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->yParamMask) >> 4 : PARAMETER_UNUSED;
+	nParam = opcode->nParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->nParamMask) : PARAMETER_UNUSED;
+
+	core->xParam = xParam;
+	core->yParam = yParam;
+	core->nParam = nParam;
 
 	core->PC += OPCODE_SIZE;
-	opcode->handler(core, xParam, yParam, nParam);
+	opcode->handler(core, (BYTE) xParam, (BYTE) yParam, nParam);
 }
 
 // ========================================================================================================
@@ -220,6 +224,8 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 			}
 		}
 	}
+
+	SET_CUSTOM_FLAG(core, CUSTOM_FLAG_REDRAW_PENDING);
 }
 
 void handle_OP_SKIP_KPRESS(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {

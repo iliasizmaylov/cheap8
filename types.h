@@ -5,6 +5,8 @@
 #include <time.h>
 #include <math.h>
 
+#include <pthread.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 
@@ -41,6 +43,7 @@ typedef uint64_t QWORD;
 typedef enum {
 	VM_RESULT_ERROR,
 	VM_RESULT_SUCCESS,
+	VM_RESULT_EVENT_QUIT,
 	VM_RESULT_WARNING
 } _VM_RESULT;
 

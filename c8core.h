@@ -2,7 +2,7 @@
 #ifndef _C8CORE_H_
 #define _C8CORE_H_
 
-#include "types.h"
+#include "input.h"
 
 #define MEMORY_SIZE					(1 << 12)
 
@@ -26,7 +26,7 @@
 #define TIMER_DECREASE_FREQUENCY	60
 
 // TODO: Calculate number of ticks per cycle
-#define CORE_TICKS_PER_CYCLE		60
+#define CORE_TICKS_PER_CYCLE		20
 #define CORE_TICKS_PER_TIMER		CORE_TICKS_PER_CYCLE * (CPU_INSTRUCTIONS_PER_SECOND / TIMER_DECREASE_FREQUENCY)
 
 typedef enum {
@@ -51,7 +51,7 @@ typedef enum {
 
 #define FONT_ENTITY_SIZE		5
 
-unsigned char fontset[FONTSET_SIZE] = { 
+static const unsigned char fontset[FONTSET_SIZE] = { 
   0xF0, 0x90, 0x90, 0x90, 0xF0,	// 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
   0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -82,7 +82,9 @@ unsigned char fontset[FONTSET_SIZE] = {
 #define CUSTOM_FLAG_MASK_ERROR		0x7F
 
 #define SET_CUSTOM_FLAG(dest, source) 	dest->customFlags |= source
+#define UNSET_CUSTOM_FLAG(dest, source)	dest->customFlags &= ~(source)
 #define CHECK_CUSTOM_FLAG(dest, source)	dest->customFlags & source
+#define GET_WORD(byte1, byte2)			0 | (byte1 << 8) | byte2
 
 typedef struct _C8core {
 	BYTE memory[MEMORY_SIZE];				// RAM
@@ -91,6 +93,11 @@ typedef struct _C8core {
 	WORD I;									// Address register
 	WORD PC;								// Program counter
 	WORD SP;								// Stack pointer
+
+	WORD opcode;							// Current opcode
+	WORD xParam;							// X opcode parameter (first register number)
+	WORD yParam;							// Y opcode parameter (second register number)
+	WORD nParam;							// N opcode paramter (constant)
 
 	WORD stack[STACK_SIZE];					// Stack
 
@@ -103,12 +110,12 @@ typedef struct _C8core {
 
 	BYTE customFlags;						// Some custom flags that might come in handy (idk)
 
-	Uint64 prevCycleTicks					// Ticks (milliseconds) since start til previous cycle
-	Uint64 prevTimerTicks					// Ticks (milliseconds) since last timer decrease
+	Uint64 prevCycleTicks;					// Ticks (milliseconds) since start til previous cycle
+	Uint64 prevTimerTicks;					// Ticks (milliseconds) since last timer decrease
 } C8core;
 
 VM_RESULT loadROM(C8core *core, FILE *ROM);
 VM_RESULT initCore(C8core **m_core, FILE *ROM);
-VM_RESULT coreCycle(C8core *core);
+VM_RESULT destroyCore(C8core **m_core);
 
 #endif

@@ -2,11 +2,12 @@
 #define _VM_H_
 
 #include "opcodes.h"
+#include "c8debug.h"
 
 // ============================= Video Interface Definition =============================
 
-#define VIDEO_DEFAULT_RESOLUTION_WIDTH		640
-#define VIDEO_DEFAULT_RESOLUTION_HEIGHT		480
+#define VIDEO_DEFAULT_RESOLUTION_WIDTH		1024
+#define VIDEO_DEFAULT_RESOLUTION_HEIGHT		768
 #define VIDEO_DEFAULT_FLAGS					SDL_WINDOW_OPENGL
 #define VIDEO_DEFAULT_WINDOW_TITLE			"Cheap-8"
 #define VIDEO_DEFAULT_RENDER_INDEX			-1
@@ -37,7 +38,7 @@ VM_RESULT initVideoInterface(VideoInterface **m_interface);
 VM_RESULT clearScreen(VideoInterface *interface);
 VM_RESULT redrawScreenRow(VideoInterface *interface, BYTE rowOffset, QWORD rowContent);
 VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen);
-VM_RESULT destroyVideoInterface(VideoInterface *interface);
+VM_RESULT destroyVideoInterface(VideoInterface **m_interface);
 
 // ============================= Audio Interface Definition =============================
 
@@ -49,7 +50,10 @@ VM_RESULT destroyVideoInterface(VideoInterface *interface);
 
 #define DEFAULT_SQWAVE_TONE				1101.0f
 #define DEFAULT_SQWAVE_VOLUME			3000
-#define DEFAULT_SQWAVE_PERMUTATIONS		20
+#define DEFAULT_SQWAVE_PERMUTATIONS		300
+
+#define AUDIO_STATE_PLAYING				1
+#define AUDIO_STATE_PAUSED				0
 
 typedef Sint16 (*WAVE_FUNCTION)(float, Uint16, Uint16, double);
 
@@ -67,8 +71,8 @@ typedef struct _AudioInterface {
 
 VM_RESULT initAudioInterface(AudioInterface **m_interface);
 void processAudioCallback(void *userData, Uint8 *bytestream, int bytes);
-Sint16 getSquareWave(Uint16 tone, Uint16 volume, double time);
-VM_RESULT destroyAudioInterface(AudioInterface *interface);
+Sint16 getSquareWave(float tone, Uint16 volume, Uint16 permutations, double time);
+VM_RESULT destroyAudioInterface(AudioInterface **m_interface);
 void startBeep(AudioInterface *interface);
 void stopBeep(AudioInterface *interface);
 
@@ -78,11 +82,12 @@ typedef struct _VM {
 	AudioInterface *audio;
 	VideoInterface *video;
 	C8core *core;
+	Debugger *dbg;
 } VM;
 
 VM_RESULT initVM(VM **m_vm, char *ROMFileName);
-VM_RESULT cycleVM(VM *vm);
+VM_RESULT pollEvents(VM *vm);
 VM_RESULT runVM(VM *vm);
-VM_RESULT destroyVM(VM *vm);
+VM_RESULT destroyVM(VM **m_vm);
 
 #endif
