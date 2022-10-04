@@ -65,7 +65,7 @@ void updateCurrentOpcode(DebuggerWindow *window, const C8core* core) {
 	wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
 	wprintw(window->win, "%04X", core->opcode);
 	wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
-	clrtoeol();
+	wclrtoeol(window->win);
 	wprintw(window->win, " | PC: %04X | ", core->PC);
 	
 	wprintw(window->win, "X Param: ");
@@ -84,10 +84,12 @@ void updateCurrentOpcode(DebuggerWindow *window, const C8core* core) {
 
 	wprintw(window->win, "N Param: ");
 	if (core->nParam == 0xFFFF) {
-		wprintw(window->win, "NULL    ");
+		wprintw(window->win, "NULL | ");
 	} else {
-		wprintw(window->win, "0x%02X", core->nParam);
+		wprintw(window->win, "0x%02X | ", core->nParam);
 	}
+
+    wprintw(window->win, " Description: %s", OPCODES[getOpcodeIndex(core->opcode)].description);
 }
 
 void updateRegisters(DebuggerWindow *window, const C8core* core) {
@@ -129,7 +131,7 @@ void updateMemory(DebuggerWindow *window, const C8core* core) {
 						wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
 					}
 					mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET), 
-							"%02X", core->memory[nextMem]);
+							"%02X ", core->memory[nextMem]);
 					wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
 					
 				} else {

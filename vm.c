@@ -80,6 +80,9 @@ VM_RESULT redrawScreenRow(VideoInterface *interface, BYTE rowOffset, QWORD rowCo
 VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen) {
 	VM_ASSERT(interface == NULL);
 
+	SDL_SetRenderDrawColor(interface->renderer, VIDEO_BLACK_PIXEL_RGBO);
+	SDL_RenderClear(interface->renderer);
+
 	QWORD isScreenActive = 0;
 	for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
 		isScreenActive |= screen[i];
@@ -256,6 +259,8 @@ VM_RESULT pollEvents(VM *vm) {
 					case INPUT_DEBUG_NEXT_STEP:
 						// TODO: Implement stepping into when in debug step-by-step mode
 						break;
+                    default:
+                        break;
 				}
 			}
 

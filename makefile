@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -I -g -Wall -Werror
+CFLAGS = -I -Wall -Werror
 LDFLAGS = -lsdl2 -lm -lpanel -lncurses
 
 DEPS = vm.h opcodes.h c8core.h input.h types.h c8debug.h
@@ -9,7 +9,7 @@ OBJECTS = $(SOURCES:.c=.o)
 TARGET = cheap8
 
 %.o : %.c $(DEPS)
-	$(CC) -c $< -o $@ $(CFLAGS)
+	$(CC) -c -g $(CFLAGS) $< -o $@
 
 $(TARGET) : $(OBJECTS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
@@ -17,4 +17,3 @@ $(TARGET) : $(OBJECTS)
 .PHONY: clean
 clean:
 	@rm -f $(TARGET) $(OBJECTS)
-	

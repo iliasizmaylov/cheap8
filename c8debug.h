@@ -2,6 +2,8 @@
 #define _C8DEBUG_H_
 
 #include "c8core.h"
+#include "opcodes.h"
+
 #include <panel.h>
 #include <ncurses.h>
 
@@ -17,7 +19,7 @@
 
 #define WINDOW_MEMORY_COLUMN_OFFSET		5
 
-#define WINDOW_MEMORY_NO_MEM_CHAR		"~~"
+#define WINDOW_MEMORY_NO_MEM_CHAR		"~~ "
 #define WINDOW_MEMORY_END_CHAR			"END"
 
 typedef enum {

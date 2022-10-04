@@ -6,9 +6,9 @@
 
 // ============================= Video Interface Definition =============================
 
-#define VIDEO_DEFAULT_RESOLUTION_WIDTH		1024
-#define VIDEO_DEFAULT_RESOLUTION_HEIGHT		768
-#define VIDEO_DEFAULT_FLAGS					SDL_WINDOW_OPENGL
+#define VIDEO_DEFAULT_RESOLUTION_WIDTH		(SCREEN_RESOLUTION_WIDTH * 15)
+#define VIDEO_DEFAULT_RESOLUTION_HEIGHT		(SCREEN_RESOLUTION_HEIGHT * 15)
+#define VIDEO_DEFAULT_FLAGS					0
 #define VIDEO_DEFAULT_WINDOW_TITLE			"Cheap-8"
 #define VIDEO_DEFAULT_RENDER_INDEX			-1
 #define VIDEO_DEFAULT_RENDER_FLAGS			0
@@ -28,7 +28,7 @@ typedef struct _VideoInterface {
 	WORD resolutionWidth;
 	WORD resolutionHeight;
 	BYTE isFullScreen;
-	WORD windowFlags;
+	DWORD windowFlags;
 	BYTE pixelWidth;
 	BYTE pixelHeight;
 	const char *windowTitle;
