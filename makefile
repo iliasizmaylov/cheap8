@@ -1,19 +1,42 @@
-CC = gcc
+# =========================================================================
+# 
+# Cheap-8 Makefile
+# 
+# =========================================================================
 
-CFLAGS = -I -Wall -Werror
-LDFLAGS = -lsdl2 -lm -lpanel -lncurses
+TARGET		= cheap8
 
-DEPS = vm.h opcodes.h c8core.h input.h types.h c8debug.h
-SOURCES = main.c vm.c opcodes.c c8core.c input.c c8debug.c
-OBJECTS = $(SOURCES:.c=.o)
-TARGET = cheap8
+CC			= gcc
+CFLAGS		= -I -Wall -Werror
 
-%.o : %.c $(DEPS)
-	$(CC) -c -g $(CFLAGS) $< -o $@
+LINKER 		= gcc
+LFLAGS 		= -lsdl2 -lm -lpanel -lncurses
 
-$(TARGET) : $(OBJECTS)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+SRCDIR 		= src
+OBJDIR 		= obj
+BINDIR		= bin
+
+SOURCES		:= $(wildcard $(SRCDIR)/*.c)
+INCLUDES	:= $(wildcard $(SRCDIR)/*.h)
+OBJECTS		:= $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+
+$(BINDIR)/$(TARGET): $(OBJECTS)
+	@mkdir -p $(BINDIR) 
+	@$(LINKER) $(OBJECTS) $(LFLAGS) -o $@
+	@echo "Linking done"
+
+$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
+	@mkdir -p $(OBJDIR)
+	@$(CC) $(CFLAGS) -c $< -o $@
+	@echo "Compiled "$<
 
 .PHONY: clean
 clean:
-	@rm -f $(TARGET) $(OBJECTS)
+	@rm -f $(OBJECTS)
+	@echo "All object files successfully cleared"
+
+.PHONY: remove
+remove: clean
+	@rm -f $(BINDIR)/$(TARGET)
+	@echo "Executable successfully removed"
+	

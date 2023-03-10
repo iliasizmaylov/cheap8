@@ -5,3 +5,5 @@ cheap8
 *.txt
 *.patch
 *.diff
+obj/*
+bin/*
