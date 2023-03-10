@@ -2,9 +2,10 @@
 # 
 # Cheap-8 Makefile
 # 
-#	TODO:
+#	TODO: (list of "maybes")
 #		- Maybe add separate targets to compile with or without debugger
 #		- Maybe add a separate target for cheap8 compiler after it's developed
+#		- Maybe add "make menuconfig" like shit after more functionalities are developed
 #
 # =========================================================================
 
