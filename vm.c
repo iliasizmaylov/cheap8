@@ -25,8 +25,8 @@ VM_RESULT initVideoInterface(VideoInterface **m_interface) {
 
 	interface->window = SDL_CreateWindow(
 			interface->windowTitle,
-			SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED,
+			SDL_WINDOWPOS_CENTERED,
+			SDL_WINDOWPOS_CENTERED,
 			interface->resolutionWidth,
 			interface->resolutionHeight,
 			VIDEO_DEFAULT_FLAGS);
@@ -46,16 +46,14 @@ VM_RESULT initVideoInterface(VideoInterface **m_interface) {
 VM_RESULT clearScreen(VideoInterface *interface) {
 	VM_ASSERT(interface == NULL);
 
-	SDL_SetRenderDrawColor(interface->renderer, VIDEO_BLACK_PIXEL_RGBO);
 	SDL_RenderClear(interface->renderer);
-	SDL_RenderPresent(interface->renderer);
 
 	return VM_RESULT_SUCCESS;
 }
 
-VM_RESULT redrawScreenRow(VideoInterface *interface, BYTE rowOffset, QWORD rowContent) {
+VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowContent) {
 	SDL_Rect nextPixel;
-	BYTE currentCol = 0;
+	WORD currentCol = 0;
 	rowOffset *= interface->pixelHeight;
 
 	for (BYTE i = SCREEN_RESOLUTION_WIDTH ; i > 0; i--) {
@@ -80,24 +78,12 @@ VM_RESULT redrawScreenRow(VideoInterface *interface, BYTE rowOffset, QWORD rowCo
 VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen) {
 	VM_ASSERT(interface == NULL);
 
-	SDL_SetRenderDrawColor(interface->renderer, VIDEO_BLACK_PIXEL_RGBO);
-	SDL_RenderClear(interface->renderer);
-
-	QWORD isScreenActive = 0;
-	for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
-		isScreenActive |= screen[i];
-	}
-
-	if (!isScreenActive) {
-		clearScreen(interface);
-		return VM_RESULT_SUCCESS;
-	}
-
 	for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
 		redrawScreenRow(interface, i, screen[i]);
 	}
 
 	SDL_RenderPresent(interface->renderer);
+
 	return VM_RESULT_SUCCESS;
 }
 
@@ -208,8 +194,8 @@ void stopBeep(AudioInterface *interface) {
 
 // =================================== VM Functions =================================== 
 
-VM_RESULT initVM(VM **m_vm, char *ROMFileName) {
-	*m_vm = (VM*) malloc(sizeof(VM));	
+VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags) {
+	*m_vm = (VM*) malloc(sizeof(VM));
 	VM *vm = *m_vm;
 
 	VM_ASSERT(vm == NULL);
@@ -218,6 +204,7 @@ VM_RESULT initVM(VM **m_vm, char *ROMFileName) {
 	vm->video = NULL;
 	vm->core = NULL;
 	vm->dbg = NULL;
+    vm->flags = flags;
 
 	VM_ASSERT(initVideoInterface(&vm->video) != VM_RESULT_SUCCESS);
 	VM_ASSERT(initAudioInterface(&vm->audio) != VM_RESULT_SUCCESS);
@@ -231,10 +218,12 @@ VM_RESULT initVM(VM **m_vm, char *ROMFileName) {
 
 	VM_ASSERT(coreInitResult != VM_RESULT_SUCCESS);
 
-	if (initDebugger(&vm->dbg, vm->core) != VM_RESULT_SUCCESS) {
-		printf("Failed to initialize debugger!\n");
-		vm->dbg = NULL;
-	}
+    if (vm->flags & VM_FLAG_DEBUGGER) {
+        if (initDebugger(&vm->dbg, vm->core) != VM_RESULT_SUCCESS) {
+            printf("Failed to initialize debugger!\n");
+            vm->dbg = NULL;
+        }
+    }
 
 	return VM_RESULT_SUCCESS;
 }
@@ -253,12 +242,6 @@ VM_RESULT pollEvents(VM *vm) {
 				switch (ev.key.keysym.scancode) {
 					case INPUT_QUIT:
 						return VM_RESULT_EVENT_QUIT;
-					case INPUT_DEBUG_STEP_MODE:
-						// TODO: Switch emulator mode to debug step-by-step
-						break;
-					case INPUT_DEBUG_NEXT_STEP:
-						// TODO: Implement stepping into when in debug step-by-step mode
-						break;
                     default:
                         break;
 				}
@@ -289,7 +272,7 @@ VM_RESULT runVM(VM *vm) {
 	BYTE isRunning = 1;
 
 	vm->core->opcode = GET_WORD(vm->core->memory[vm->core->PC], vm->core->memory[vm->core->PC + 1]);
-	if (vm->dbg != NULL) {
+	if (vm->dbg != NULL && (vm->flags & VM_FLAG_DEBUGGER)) {
 		updateDebugger(vm->dbg);
 	}
 
@@ -312,7 +295,7 @@ VM_RESULT runVM(VM *vm) {
 
 		processOpcode(vm->core);
 		vm->core->opcode = GET_WORD(vm->core->memory[vm->core->PC], vm->core->memory[vm->core->PC + 1]);
-		if (vm->dbg != NULL) {
+		if (vm->dbg != NULL && (vm->flags & VM_FLAG_DEBUGGER)) {
 			updateDebugger(vm->dbg);
 		}
 

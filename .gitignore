@@ -1,3 +1,7 @@
 cheap8
 *.swp
 *.o
+*.ch8
+*.txt
+*.patch
+*.diff

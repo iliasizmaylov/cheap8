@@ -4,8 +4,8 @@
 #include "c8core.h"
 #include "opcodes.h"
 
-#include <panel.h>
 #include <ncurses.h>
+#include <stdarg.h>
 
 #define WINDOW_TITLE_COLOR				1
 #define WINDOW_MEMORY_END_COLOR			2
@@ -14,10 +14,10 @@
 #define WINDOW_FLAGS_NORMAL_COLOR		5
 
 #define WINDOW_TITLE_OFFSET				4
-#define WINDOW_CONTENT_X_OFFSET			1
+#define WINDOW_CONTENT_X_OFFSET			2
 #define WINDOW_CONTENT_Y_OFFSET			2
 
-#define WINDOW_MEMORY_COLUMN_OFFSET		5
+#define WINDOW_MEMORY_COLUMN_OFFSET		4
 
 #define WINDOW_MEMORY_NO_MEM_CHAR		"~~ "
 #define WINDOW_MEMORY_END_CHAR			"END"
@@ -27,24 +27,28 @@ typedef enum {
 	DEBUG_WINDOW_REGISTERS,
 	DEBUG_WINDOW_MEMORY,
 	DEBUG_WINDOW_CUSTOM_FLAGS,
+    DEBUG_WINDOW_DISASM,
 	DEBUG_WINDOW_COUNT
 } DebuggerWindows;
 
 typedef struct _DebuggerWindow DebuggerWindow;
-typedef void (*WINDOW_UPDATE)(DebuggerWindow*, const C8core*);
+typedef struct _Debugger Debugger;
+typedef void (*WINDOW_UPDATE)(Debugger*, DebuggerWindow*, const C8core*);
 
 void drawWindowBox(DebuggerWindow *window);
 
-void updateCurrentOpcode(DebuggerWindow *window, const C8core *core);
-void updateRegisters(DebuggerWindow *window, const C8core *core);
-void updateMemory(DebuggerWindow *window, const C8core *core);
-void updateCustomFlags(DebuggerWindow *window, const C8core *core);
+void updateCurrentOpcode(Debugger *dbg, DebuggerWindow *window, const C8core *core);
+void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core *core);
+void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core *core);
+void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core);
+void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 
 static const WINDOW_UPDATE g_debuggerUpdaters[DEBUG_WINDOW_COUNT] = {
 	updateCurrentOpcode,
 	updateRegisters,
 	updateMemory,
-	updateCustomFlags
+	updateCustomFlags,
+    updateDisasm
 };
 
 typedef void (*WINDOW_INIT)(DebuggerWindow*);
@@ -53,12 +57,14 @@ void initCurrentOpcode(DebuggerWindow *window);
 void initRegisters(DebuggerWindow *window);
 void initMemory(DebuggerWindow *window);
 void initCustomFlags(DebuggerWindow *window);
+void initDisasm(DebuggerWindow *window);
 
 static const WINDOW_INIT g_debuggerInits[DEBUG_WINDOW_COUNT] = {
 	initCurrentOpcode,
 	initRegisters,
 	initMemory,
-	initCustomFlags
+	initCustomFlags,
+    initDisasm
 };
 
 typedef struct _DebuggerWindow {
@@ -72,7 +78,6 @@ typedef struct _DebuggerWindow {
 	const char *title;
 
 	WINDOW *win;
-	PANEL *pan;
 
 	WINDOW_UPDATE updateHandler;
 	WINDOW_INIT initHandler;

@@ -272,7 +272,7 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 
 	BYTE x = core->reg[xParam] % SCREEN_RESOLUTION_WIDTH;
 	BYTE y = core->reg[yParam] % SCREEN_RESOLUTION_HEIGHT;
-	
+
 	BYTE height = y + nParam;
 	BYTE hasVerticalOverlap = (height - 1) > SCREEN_RESOLUTION_HEIGHT ? 1 : 0;
 
@@ -284,12 +284,13 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 
 	for (BYTE sprite = 0; sprite < nParam; sprite++) {
 		QWORD newScreenRow = 0;
+        QWORD qsprite = core->memory[core->I + sprite];
 		if (x + 8 > SCREEN_RESOLUTION_WIDTH) {
-			newScreenRow = core->memory[core->I + sprite] >> (x + 8 - SCREEN_RESOLUTION_WIDTH);
-			newScreenRow &= core->memory[core->I + sprite] << (SCREEN_RESOLUTION_WIDTH - x);
+			newScreenRow |= qsprite >> (x + 8 - SCREEN_RESOLUTION_WIDTH);
 		} else {
-			newScreenRow = core->memory[core->I + sprite] << (SCREEN_RESOLUTION_WIDTH - x - 8);
+			newScreenRow |= qsprite << (SCREEN_RESOLUTION_WIDTH - x - 8);
 		}
+        
 		QWORD savedScreenRow = core->gfx[y];
 		core->gfx[y] ^= newScreenRow;
 		if ((savedScreenRow | newScreenRow) != core->gfx[y]) {

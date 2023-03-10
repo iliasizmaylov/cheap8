@@ -36,7 +36,7 @@ typedef struct _VideoInterface {
 
 VM_RESULT initVideoInterface(VideoInterface **m_interface);
 VM_RESULT clearScreen(VideoInterface *interface);
-VM_RESULT redrawScreenRow(VideoInterface *interface, BYTE rowOffset, QWORD rowContent);
+VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowContent);
 VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen);
 VM_RESULT destroyVideoInterface(VideoInterface **m_interface);
 
@@ -78,14 +78,20 @@ void stopBeep(AudioInterface *interface);
 
 // =================================== VM Definition ===================================
 
+// XXX: This is the only flag I need currently
+//      Maybe in the future I will need more flags (which is honestly unlikely)
+#define VM_FLAG_DEBUGGER    1 << 0
+
 typedef struct _VM {
 	AudioInterface *audio;
 	VideoInterface *video;
 	C8core *core;
 	Debugger *dbg;
+
+    BYTE flags;
 } VM;
 
-VM_RESULT initVM(VM **m_vm, char *ROMFileName);
+VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags);
 VM_RESULT pollEvents(VM *vm);
 VM_RESULT runVM(VM *vm);
 VM_RESULT destroyVM(VM **m_vm);
