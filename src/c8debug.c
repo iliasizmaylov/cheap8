@@ -1,3 +1,12 @@
+/*
+ * Cheap-8: a chip-8 emulator
+ * 
+ * File: c8debug.c
+ * License: DWYW - "Do Whatever You Want"
+ * 
+ * Functions and data structures for a cheap8 debugger
+ */
+
 #include "c8debug.h"
 
 void drawWindowBox(DebuggerWindow *window) {

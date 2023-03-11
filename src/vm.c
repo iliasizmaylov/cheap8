@@ -2,6 +2,16 @@
 
 // ============================= Video Interface Functions =============================
 
+/*
+ * @param m_interface
+ *  A reference to a pointer to struct VideoInterface to be initialized
+ * @description
+ *  Initializes the VideoInterface structure and prepares it for use with 
+ *  selected video mode
+ *  TODO:   Right now the only supported interface is SDL2 
+ *          In the future the should be a (probably) curses interface
+ *          CLI video output option
+ */
 VM_RESULT initVideoInterface(VideoInterface **m_interface) {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 		return VM_RESULT_ERROR;
@@ -43,6 +53,8 @@ VM_RESULT initVideoInterface(VideoInterface **m_interface) {
 	return VM_RESULT_SUCCESS;
 }
 
+// Clears the screen of a given VideoInterface
+// TODO: add support for curses VideoInterface later
 VM_RESULT clearScreen(VideoInterface *interface) {
 	VM_ASSERT(interface == NULL);
 
@@ -51,6 +63,17 @@ VM_RESULT clearScreen(VideoInterface *interface) {
 	return VM_RESULT_SUCCESS;
 }
 
+/*
+ * @param interface
+ *  A pointer to VideoInterface struct to be used to output current screen row contents
+ *  TODO:   Add support for curses video output
+ * @param rowOffset
+ *  A target screen row offset in a screen bit array to be output
+ * @param rowContent
+ *  64 bits representing new row contents to be but into a target row represented by rowOffset param
+ * @description:
+ *  Output a given row of bits onto a screen using a provided VideoInterface
+ */
 VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowContent) {
 	SDL_Rect nextPixel;
 	WORD currentCol = 0;
@@ -75,6 +98,15 @@ VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowCo
 	return VM_RESULT_SUCCESS;
 }
 
+/*
+ * @param interface
+ *  A pointer to a VideoInterface struct to be used
+ * @param screen
+ *  A 32x64 array of bits representing white and black pixels (corresponding to
+ *  set and unset bits in said array)
+ * @description:
+ *  Redraws the whole screen using a given screen content
+ */
 VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen) {
 	VM_ASSERT(interface == NULL);
 
@@ -87,6 +119,14 @@ VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen) {
 	return VM_RESULT_SUCCESS;
 }
 
+/*
+ * @param m_interface
+ *  A reference to a pointer to struct VideoInterface to be uninitialized
+ * @description:
+ *  Destroys a connection to a video framework being used and frees memory 
+ *  allocated to handle it (i.e. struct VideoInterface)
+ *  TODO:   Add support for curses CLI video output
+ */
 VM_RESULT destroyVideoInterface(VideoInterface **m_interface) {
 	VideoInterface *interface = *m_interface;
 
@@ -101,6 +141,20 @@ VM_RESULT destroyVideoInterface(VideoInterface **m_interface) {
 
 // ============================= Audio Interface Functions =============================
 
+/*
+ * @param tone
+ *  A float number representing a frequency of a sound
+ * @param volume
+ *  An integer representing sound's amplitude (or volume)
+ * @param permutations
+ *  Basically a sample rate of a sound
+ * @param time
+ *  A double float number representing a point at time at which current sample is 
+ *  to be created
+ * @description:
+ *  Used in processAudioCallback function to build a sample of a square wave at
+ *  a given point in time with given tone and sound
+ */
 Sint16 getSquareWave(float tone, Uint16 volume, Uint16 permutations, double time) {
 	Sint16 sample = 0;
 	for (int i = 0; i < permutations; i++) {

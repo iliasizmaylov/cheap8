@@ -1,3 +1,12 @@
+/*
+ * Cheap-8: a chip-8 emulator
+ * 
+ * File: opcodes.c
+ * License: DWYW - "Do Whatever You Want"
+ * 
+ * Opcode handlers and definition of all all opcodes' formats
+ */
+
 #include "opcodes.h"
 
 const Opcode OPCODES[OPCODE_COUNT] = {
@@ -75,6 +84,7 @@ const Opcode OPCODES[OPCODE_COUNT] = {
 
 // ========================================================================================================
 
+// Converts and opcode mask into an opcode id from OpcodeDescription enum
 inline BYTE getOpcodeIndex(WORD raw) {
     for (BYTE i = 0; i < OPCODE_COUNT; i++) {
 		if ((raw & OPCODES[i].opcodeMask) == OPCODES[i].opcodeId) {
@@ -84,6 +94,8 @@ inline BYTE getOpcodeIndex(WORD raw) {
     return OP_CALL_MCR;
 }
 
+// Applies all necessary masks to a current opcode (i.e. the one pointed
+// to by core->PC register) and then calls this opcode's handler
 void processOpcode(C8core *core) {
 	WORD xParam = PARAMETER_UNUSED;
 	WORD yParam = PARAMETER_UNUSED;
@@ -265,15 +277,28 @@ void handle_OP_SET_RANDOM(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	core->reg[xParam] = (rand() % (1 << 7)) & nParam;
 }
 
+/*
+ * In this implementation of a chip-8 system emulator the screen is percieved by
+ * the program as an array of uint64 so therefore each bit (set or unset) represents
+ * a pixel on a 32 by 64 screen (white or black)
+ *
+ * That's why the logic might seem counterintuitive at the first glance
+ */
 void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	if (nParam == 0) {
 		return;
 	}
 
+    // Getting x and y coordinates for a sprite to be painted at
+    // The remainder div is used just in case if the coordinates being supplied
+    // overflow the screen dimensions
 	BYTE x = core->reg[xParam] % SCREEN_RESOLUTION_WIDTH;
 	BYTE y = core->reg[yParam] % SCREEN_RESOLUTION_HEIGHT;
 
 	BYTE height = y + nParam;
+
+    // This flag signalizes if the portion (or the whole) sprite is overlapping the screen
+    // height, in which case we would paint it appropriately (which is overlapping the screen)
 	BYTE hasVerticalOverlap = (height - 1) > SCREEN_RESOLUTION_HEIGHT ? 1 : 0;
 
 	if (hasVerticalOverlap) {
@@ -282,18 +307,26 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 
 	core->reg[REG_VF] = 0;
 
+    // Iterating over bytes representing sprite pixel rows
 	for (BYTE sprite = 0; sprite < nParam; sprite++) {
 		QWORD newScreenRow = 0;
         QWORD qsprite = core->memory[core->I + sprite];
+        
+        // If we overlap the screen vertically
 		if (x + 8 > SCREEN_RESOLUTION_WIDTH) {
+            // Then draw the remainder starting from the left (overlap it visually)
 			newScreenRow |= qsprite >> (x + 8 - SCREEN_RESOLUTION_WIDTH);
-		} else {
+		} else { 
+            // Otherwise draw the sprite row normally
 			newScreenRow |= qsprite << (SCREEN_RESOLUTION_WIDTH - x - 8);
 		}
         
 		QWORD savedScreenRow = core->gfx[y];
 		core->gfx[y] ^= newScreenRow;
+
+        // If any of the bits on the screen that the sprite was drawn over were set
 		if ((savedScreenRow | newScreenRow) != core->gfx[y]) {
+            // then we need to set VF register
 			core->reg[REG_VF] = 1;
 		}
 		
