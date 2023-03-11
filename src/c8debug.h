@@ -1,3 +1,12 @@
+/*
+ * Cheap-8: a chip-8 emulator
+ * 
+ * File: c8debug.h
+ * License: DWYW - "Do Whatever You Want"
+ * 
+ * Functions and data structures for a cheap8 debugger
+ */
+
 #ifndef _C8DEBUG_H_
 #define _C8DEBUG_H_
 
@@ -7,21 +16,30 @@
 #include <ncurses.h>
 #include <stdarg.h>
 
+// Colors for ncurses interface
+// TODO: Probably it's best to represent these in a struct
 #define WINDOW_TITLE_COLOR				1
 #define WINDOW_MEMORY_END_COLOR			2
 #define WINDOW_MEMORY_OPCODE_COLOR		3
 #define WINDOW_FLAGS_ERROR_COLOR		4
 #define WINDOW_FLAGS_NORMAL_COLOR		5
 
+// Offsets for drawing windows and text
+// TODO: Also probably better to store it in structs to be more tidy
 #define WINDOW_TITLE_OFFSET				4
 #define WINDOW_CONTENT_X_OFFSET			2
 #define WINDOW_CONTENT_Y_OFFSET			2
 
+// Offset for a memory window content
+// TODO: You guessed it... (move to struct)
 #define WINDOW_MEMORY_COLUMN_OFFSET		4
 
+// Special characters for drawing memory window
+// TODO: Aaaaand y'guessed it yet again...
 #define WINDOW_MEMORY_NO_MEM_CHAR		"~~ "
 #define WINDOW_MEMORY_END_CHAR			"END"
 
+// Enum for a more convenient way to identify and refer to debugger TUI windows
 typedef enum {
 	DEBUG_WINDOW_CURRENT_OPCODE,
 	DEBUG_WINDOW_REGISTERS,

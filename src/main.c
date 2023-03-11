@@ -26,10 +26,16 @@ const struct program_param param_rom_path = {
     .is_bool = 0,
 };
 
-#define PROGRAM_PARAM_COUNT 2
+const struct program_param param_help = {
+    .letter = 'h',
+    .description = "Show this help message",
+    .is_bool = 1,
+};
 
-const struct program_param* const params[PROGRAM_PARAM_COUNT] = {&param_debug_on, &param_rom_path};
-const char *getopt_param_string = "dr:";
+#define PROGRAM_PARAM_COUNT 3
+
+const struct program_param* const params[PROGRAM_PARAM_COUNT] = {&param_debug_on, &param_rom_path, &param_help};
+const char *getopt_param_string = "dr:h";
 
 /* ====================== PROGRAM DESCRIPTION ===================== */
 
@@ -87,16 +93,23 @@ int main (int argc, char **argv) {
                     strcpy(ROMFile, optarg);
                 break;
             case 'h':
-                goto label_print_help;
+                print_help();
+                return 0;
+                break;
             default:
                 printf("Error: unknown option -%c\n\n", opt);
-                goto label_print_help;
+                print_help();
+                return 0;
         }
     }
 
 	if (strcmp(ROMFile, "") == 0) {
 		strcpy(ROMFile, DEMO_ROM_FILE);
-	}
+	} else if (access(ROMFile, F_OK) != 0) {
+        printf("Error: Provided ROM file \"%s\" doesn't exist\n\n", ROMFile);
+        print_help();
+        return 0;
+    }
 
     printf("Using ROM \"%s\"...\n", ROMFile);
 
@@ -107,8 +120,4 @@ int main (int argc, char **argv) {
 	destroyVM(&Chip8VirtualMachine);
 
 	return 0;
-
-label_print_help:
-    print_help();
-    return 0;
 }
