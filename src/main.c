@@ -58,6 +58,7 @@ const struct program_info* const current_version = &cheap8_info;
 
 /* ====================== UTILITY FUNCTIONS ======================= */
 
+// Just prints the help message
 void print_help() {
     printf("Program: %s (ver. %s)\nDescription: %s\nOptions:\n", 
             current_version->name, 

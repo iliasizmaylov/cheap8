@@ -1,3 +1,12 @@
+/**
+ * Cheap-8: a chip-8 emulator
+ * 
+ * File: vm.h
+ * License: DWYW - "Do Whatever You Want"
+ * 
+ * Declaration of function that handle most of the logic in the VM
+ */
+
 #ifndef _VM_H_
 #define _VM_H_
 
@@ -96,4 +105,4 @@ VM_RESULT pollEvents(VM *vm);
 VM_RESULT runVM(VM *vm);
 VM_RESULT destroyVM(VM **m_vm);
 
-#endif
+#endif  /* _VM_H_ */

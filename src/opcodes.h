@@ -1,7 +1,7 @@
-/*
+/**
  * Cheap-8: a chip-8 emulator
  * 
- * File: c8debug.h
+ * File: opcodes.h
  * License: DWYW - "Do Whatever You Want"
  * 
  * Declaration of all opcode handlers and opcode codes (no pun intended)
@@ -116,4 +116,4 @@ void handle_OP_LOAD_REGS(C8core *core, BYTE xParam, BYTE yParam, WORD nParam);
 
 extern const Opcode OPCODES[OPCODE_COUNT];
 
-#endif
+#endif  /* _OPCODES_H_ */

@@ -1,4 +1,4 @@
-/*
+/**
  * Cheap-8: a chip-8 emulator
  * 
  * File: c8core.h
@@ -73,7 +73,7 @@ typedef enum {
 // Size (in bytes) of a font entry in a fontset in core memory
 #define FONT_ENTITY_SIZE		5
 
-/*
+/**
  * The default fontset
  * Each row represents 5 lines of 8 bits each
  * where each bit corresponds to a set or unset pixel on the screen
@@ -157,4 +157,4 @@ VM_RESULT initCore(C8core **m_core, FILE *ROM);
 // Free struct C8core
 VM_RESULT destroyCore(C8core **m_core);
 
-#endif
+#endif  /* _C8CORE_H_ */

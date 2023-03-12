@@ -1,8 +1,18 @@
+/**
+ * Cheap-8: a chip-8 emulator
+ * 
+ * File: vm.c
+ * License: DWYW - "Do Whatever You Want"
+ * 
+ * Definition of function that handle most of the logic in the VM
+ */
+
 #include "vm.h"
 
 // ============================= Video Interface Functions =============================
 
-/*
+/** initVideoInterface
+ *
  * @param m_interface
  *  A reference to a pointer to struct VideoInterface to be initialized
  * @description
@@ -63,7 +73,8 @@ VM_RESULT clearScreen(VideoInterface *interface) {
 	return VM_RESULT_SUCCESS;
 }
 
-/*
+/** redrawScreenRow
+ *
  * @param interface
  *  A pointer to VideoInterface struct to be used to output current screen row contents
  *  TODO:   Add support for curses video output
@@ -98,7 +109,8 @@ VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowCo
 	return VM_RESULT_SUCCESS;
 }
 
-/*
+/** redrawScreen
+ *
  * @param interface
  *  A pointer to a VideoInterface struct to be used
  * @param screen
@@ -119,7 +131,8 @@ VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen) {
 	return VM_RESULT_SUCCESS;
 }
 
-/*
+/** destroyVideoInterface
+ *
  * @param m_interface
  *  A reference to a pointer to struct VideoInterface to be uninitialized
  * @description:
@@ -141,7 +154,8 @@ VM_RESULT destroyVideoInterface(VideoInterface **m_interface) {
 
 // ============================= Audio Interface Functions =============================
 
-/*
+/** gitSquareWave
+ *
  * @param tone
  *  A float number representing a frequency of a sound
  * @param volume
@@ -163,6 +177,19 @@ Sint16 getSquareWave(float tone, Uint16 volume, Uint16 permutations, double time
 	return sample;
 }
 
+/** processAudioCallback
+ *
+ * @param userData
+ *  Pointer to data that is to be used to create the next sample of sound
+ *  For SDL2 implementation the struct that is used is AudioCallbackData
+ * @param bytestream
+ *  Array of bytes that will hold a result of a callback which is a new audio sample
+ * @param bytes
+ *  The length of a sample in bytes
+ * @description:
+ *  A function that is called all the time when the audio state is on and
+ *  generates a next piece (or sample) of audio to be played
+ */
 void processAudioCallback(void *userData, Uint8 *bytestream, int bytes) {
 	Sint16 *stream = (Sint16*) bytestream;
 	int length = bytes / 2;
@@ -179,6 +206,17 @@ void processAudioCallback(void *userData, Uint8 *bytestream, int bytes) {
 	}
 }
 
+/** initAudioInterface
+ *
+ * @param m_interface
+ *  A reference to a pointer to AudioInterface struct representing an
+ *  audio interface to be initialized
+ * @description:
+ *  Allocates memory for an audio interface and then populates it with
+ *  appropriate data and also preparing the actual media library to be 
+ *  used with a given interface
+ *  TODO: add support for other media libraries compatible with CLI only mode
+ */
 VM_RESULT initAudioInterface(AudioInterface **m_interface) {
 	if (SDL_Init(SDL_INIT_AUDIO) != 0) {
 		return VM_RESULT_ERROR;
@@ -217,6 +255,15 @@ VM_RESULT initAudioInterface(AudioInterface **m_interface) {
 	return VM_RESULT_SUCCESS;
 }
 
+/** destroyAudioInterface
+ *
+ * @param m_interface
+ *  A reference to a pointer to AudioInterface struct that is to be destroyed
+ * @description:
+ *  Frees memory fro a given audio interface an destroyes a connection to
+ *  a media library that's been used
+ *  TODO: Add support for something compatible with CLI only
+ */
 VM_RESULT destroyAudioInterface(AudioInterface **m_interface) {
 	AudioInterface *interface = *m_interface;
 
@@ -228,6 +275,15 @@ VM_RESULT destroyAudioInterface(AudioInterface **m_interface) {
 	return VM_RESULT_SUCCESS;
 }
 
+/** startBeep
+ *
+ * @param interface
+ *  Pointer to AudioInterface struct
+ * @description:
+ *  Sets the audio state to AUDIO_STATE_PLAYING and
+ *  signalling SDL2 library to start playing it
+ *  TODO: Only for SDL2 based interface, need to add support for other libs
+ */
 void startBeep(AudioInterface *interface) {
 	if (interface->state == AUDIO_STATE_PLAYING) {
 		return;
@@ -237,6 +293,15 @@ void startBeep(AudioInterface *interface) {
 	SDL_PauseAudio(interface->state);
 }
 
+/** stopBeep
+ *
+ * @param interface
+ *  Pointer to AudioInterface struct
+ * @description:
+ *  Sets the audio state to AUDIO_STATE_PAUSED and
+ *  signalling SDL2 library to stop playing it
+ *  TODO: Only for SDL2 based interface, need to add support for other libs
+ */
 void stopBeep(AudioInterface *interface) {
 	if (interface->state == AUDIO_STATE_PAUSED) {
 		return;
@@ -248,6 +313,19 @@ void stopBeep(AudioInterface *interface) {
 
 // =================================== VM Functions =================================== 
 
+/** initVM
+ *
+ * @param m_vm
+ *  Reference to a pointer to VM struct that is to be initialized
+ * @param ROMFileName
+ *  Path to a ROM file to be executed by VM
+ * @param flags
+ *  A byte representing 8 flags for VM
+ * @description:
+ *  Allocates memory and initializes VM with populating it's handler
+ *  struct with appropriate data and calling all initializer functions 
+ *  for each interface included in a VM (and according to the flags being set)
+ */
 VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags) {
 	*m_vm = (VM*) malloc(sizeof(VM));
 	VM *vm = *m_vm;
@@ -282,6 +360,14 @@ VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags) {
 	return VM_RESULT_SUCCESS;
 }
 
+/** pollEvents
+ *
+ * @param vm
+ *  Pointer to a VM struct
+ * @description:
+ *  Used to poll for keyboard events
+ *  TODO: Only supports SDL2, need to add support for other libs
+ */
 VM_RESULT pollEvents(VM *vm) {
 	VM_ASSERT(vm == NULL);
 
@@ -316,6 +402,16 @@ VM_RESULT pollEvents(VM *vm) {
 	return VM_RESULT_SUCCESS;
 }
 
+/** runVM
+ *
+ * @param vm
+ *  Pointer to VM struct representing a VM context that is to be started
+ * @description:
+ *  An entry pointer for a cheap8 VM run
+ *  Also holds an infinite execution loop within it and
+ *  invokes debugger and such
+ *  Basically handles everything
+ */
 VM_RESULT runVM(VM *vm) {
 	VM_ASSERT(vm == NULL);
 
@@ -370,6 +466,14 @@ VM_RESULT runVM(VM *vm) {
 	return VM_RESULT_SUCCESS;
 }
 
+/** destroyVM
+ *
+ * @param m_vm
+ *  A reference to a pointer to a VM struct that is to be destroyed
+ * @description
+ *  A destructor for a VM itself that calls all other destructors for 
+ *  all components and then destroyes the VM itself
+ */
 VM_RESULT destroyVM(VM **m_vm) {
 	VM *vm = *m_vm;
 

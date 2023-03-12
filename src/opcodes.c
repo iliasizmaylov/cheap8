@@ -1,4 +1,4 @@
-/*
+/**
  * Cheap-8: a chip-8 emulator
  * 
  * File: opcodes.c
@@ -277,7 +277,8 @@ void handle_OP_SET_RANDOM(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	core->reg[xParam] = (rand() % (1 << 7)) & nParam;
 }
 
-/*
+/** handle_OP_DRAW
+ *
  * In this implementation of a chip-8 system emulator the screen is percieved by
  * the program as an array of uint64 so therefore each bit (set or unset) represents
  * a pixel on a 32 by 64 screen (white or black)

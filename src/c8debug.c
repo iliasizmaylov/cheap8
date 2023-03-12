@@ -1,4 +1,4 @@
-/*
+/**
  * Cheap-8: a chip-8 emulator
  * 
  * File: c8debug.c
@@ -9,6 +9,17 @@
 
 #include "c8debug.h"
 
+/* ======================= GENERIC FUNCTIONS ======================= */
+
+/** drawWindowBox
+ *
+ * @param window
+ *  pointer to DebuggerWindow struct for which the window border
+ *  is to be drawn
+ * @description:
+ *  Generic function that can be used with any debugger window
+ *  that draws a border around the window and window title
+ */
 void drawWindowBox(DebuggerWindow *window) {
 	box(window->win, 0, 0);
 	wattron(window->win, COLOR_PAIR(WINDOW_TITLE_COLOR));
@@ -17,6 +28,15 @@ void drawWindowBox(DebuggerWindow *window) {
     wmove(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET);
 }
 
+/* ======================= INIT HANDLERS =========================== */
+
+/** initCurrentOpcode
+ * 
+ * @param window
+ *  Pointer to DebuggerWindow struct representing a current opcode window
+ * @description:
+ *  An init handler for a current opcode window
+ */
 void initCurrentOpcode(DebuggerWindow *window) {
 	window->lines = 4;
 	window->columns = COLS;
@@ -29,6 +49,13 @@ void initCurrentOpcode(DebuggerWindow *window) {
 	drawWindowBox(window);
 }
 
+/** initRegisters
+ *
+ * @param window
+ *  Pointer to DebuggerWindow struct representing a register state window
+ * @description:
+ *  An init handler for a register state window
+ */
 void initRegisters(DebuggerWindow *window) {
 	window->lines = LINES / 5.5;
 	window->columns = COLS / 2 - 1;
@@ -41,6 +68,13 @@ void initRegisters(DebuggerWindow *window) {
 	drawWindowBox(window);
 }
 
+/** initMemory
+ *
+ * @param window
+ *  Pointer to a DebuggerWindow struct representing a memory explorer window
+ * @description:
+ *  An init handler for a memory explorer window
+ */
 void initMemory(DebuggerWindow *window) {
 	window->lines = LINES / 1.3;
 	window->columns = COLS / 2 - 1;
@@ -53,6 +87,13 @@ void initMemory(DebuggerWindow *window) {
 	drawWindowBox(window);
 }
 
+/** initCustomFlags
+ *
+ * @param window
+ *  Pointer to a DebuggerWindow struct representing a custom flag state window
+ * @description:
+ *  An init handler for a custom flag state window
+ */
 void initCustomFlags(DebuggerWindow *window) {
 	window->lines = LINES / 5.5;
 	window->columns = COLS / 2;
@@ -65,6 +106,13 @@ void initCustomFlags(DebuggerWindow *window) {
 	drawWindowBox(window);
 }
 
+/** initDisasm
+ *
+ * @param window
+ *  Pointer to a DebuggerWindow struct representing a disassembler window
+ * @description:
+ *  An init handler for a disassembler window
+ */
 void initDisasm(DebuggerWindow *window) {
     window->lines = LINES / 1.3;
     window->columns = COLS / 2;
@@ -79,6 +127,20 @@ void initDisasm(DebuggerWindow *window) {
     drawWindowBox(window);
 }
 
+/* ======================= UPDATE HANDLERS ========================= */
+
+/** updateCurrentOpcode
+ *
+ * @param dbg
+ *  Pointer to a Debugger struct representing the debugger context
+ * @param window
+ *  Pointer to a DebuggerWindow struct representing a current opcode window
+ * @param core
+ *  Pointer to a C8core struct representing a chip-8 system core state
+ * @description:
+ *  Update handler for a current opcode window
+ *  Fetches current opcore from core->PC amd displays brief info about it
+ */
 void updateCurrentOpcode(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
 	window->textLines = 1;
 	mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET, "OPCODE: ");
@@ -112,6 +174,18 @@ void updateCurrentOpcode(Debugger *dbg, DebuggerWindow *window, const C8core* co
     wprintw(window->win, " Description: %s", OPCODES[getOpcodeIndex(core->opcode)].description);
 }
 
+/** updateRegisters
+ *
+ * @param dbg
+ *  Pointer to Debugger struct representing a debugger context
+ * @param window
+ *  Pointer to a DebuggerWindow struct representing a register state window
+ * @param core
+ *  Pointer to a C8core struct representing chip-8 system core
+ * @description:
+ *  Update handler for a register state window
+ *  Fetches data from chip-8 registers and displays them
+ */
 void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
 	window->textLines = window->lines - 3;
 	static const char *regnames[GENERAL_PURPOSE_REGISTERS] = {
@@ -133,6 +207,19 @@ void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core* core) 
 	}
 }
 
+/** updateMemory
+ *
+ * @param dbg
+ *  Pointer to Debugger struct representing a debugger context
+ * @param window
+ *  Pointer to DebuggerWindow struct representing a memory explorer window
+ * @param core
+ *  Pointer to C8core struct representing a chip-8 system core
+ * @description:
+ *  Update handler for memory explorer window
+ *  Fetches memory from a current position given by core->PC register and displays it
+ *  TODO: need to update it so it's actually an explorer and probably should use core->I register as well
+ */
 void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
 	window->textLines = window->lines - 3;
 	WORD maxColumns = (window->columns - 2) / (WINDOW_MEMORY_COLUMN_OFFSET);
@@ -172,6 +259,18 @@ void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
 	}
 }
 
+/** updateCustomFlags
+ *
+ * @param dbg
+ *  Pointer to Debugger struct representing a debugger context
+ * @param window
+ *  Pointer to DebuggerWindow struct representing a custom flags state window
+ * @param core
+ *  Pointer to C8core struct representing a chip-8 system core state
+ * @description:
+ *  Update handler for a custom flag state window
+ *  Fetches custom flags from core and displays them
+ */
 void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
 	window->textLines = window->lines - 3;
 
@@ -206,10 +305,32 @@ void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core
 	}
 }
 
+/** updateDisasm
+ *
+ * @param dbg
+ *  Pointer to Debugger struct representing a debugger context
+ * @param window
+ *  Pointer to DebuggerWindow struct representing a disassembler window
+ * @param core
+ *  Pointer to C8core struct representing a chip-8 system core state
+ * @description:
+ *  Update handler for a disassembler window
+ *  TODO: Not implemented at this point so it needs to be implemented eventually
+ */
 void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
     // TODO
 }
 
+/* ==================== DEBUGGER CONTEXT FUNCTIONS ================= */
+
+/** updateDebugger
+ *
+ * @param dbg
+ *  Pointer to a Debugger struct representing a debugger context
+ * @description:
+ *  Calls all window update handlers from a given debugger context
+ *  therefore updating the whole debugger context
+ */
 VM_RESULT updateDebugger(Debugger *dbg) {
 	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
 		dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
@@ -222,6 +343,18 @@ VM_RESULT updateDebugger(Debugger *dbg) {
 	return VM_RESULT_SUCCESS;
 }
 
+/** initDebugger
+ *
+ * @param m_dbg
+ *  Reference to a pointer to Debugger struct representing a 
+ *  debugger context that is to be initialized
+ * @param _core
+ *  Pointer to a C8core struct representing a chip-8 system core state
+ * @description:
+ *  Populates Debugger struct corresponding to a given debugger context
+ *  with initial data and parameters and calls all init handlers for 
+ *  all debugger windows in a given debugger context
+ */
 VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 	VM_ASSERT(_core == NULL);
 
@@ -232,7 +365,7 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 
 	Debugger *dbg = *m_dbg;
 	dbg->core = _core;
-	dbg->isStepMode = 0;
+	dbg->flags = 0;
 
 	initscr();
 	start_color();
@@ -262,6 +395,14 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 	return VM_RESULT_SUCCESS;
 }
 
+/** destroyDebugger
+ *
+ * @param m_dbg
+ *  A reference to a pointer to Debugger struct representing
+ *  a debugger context that is to be destroyed
+ * @description:
+ *  Frees memory and destroys curses interface
+ */
 VM_RESULT destroyDebugger(Debugger **m_dbg) {
 	VM_ASSERT(*m_dbg == NULL);
 	Debugger *dbg = *m_dbg;

@@ -1,4 +1,4 @@
-/*
+/**
  * Cheap-8: a chip-8 emulator
  * 
  * File: c8core.c
@@ -9,7 +9,7 @@
 
 #include "c8core.h"
 
-/* loadROM
+/** loadROM
  *
  * @param: C8core *core
  *  Pointer to C8core struct for which to load
@@ -40,7 +40,7 @@ VM_RESULT loadROM(C8core *core, FILE *ROM) {
 	return VM_RESULT_SUCCESS;
 }
 
-/* initCore
+/** initCore
  * 
  * @param: C8core **m_core
  *  C8Core struct pointer passed by refernce
