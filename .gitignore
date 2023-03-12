@@ -7,3 +7,4 @@ cheap8
 *.diff
 obj/*
 bin/*
+*.log
