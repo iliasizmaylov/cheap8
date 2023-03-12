@@ -8,3 +8,20 @@
  */
 
 #include "types.h"
+
+// Simple function for logging
+// It's either going to be cut from the final version or will
+// evolve into the full proper logging system
+void logToFile(const char* fmt, ...) {
+    va_list vaargs;
+    va_start(vaargs, fmt);
+    
+    FILE *logFile = fopen(DEFAULT_LOG_FILE, "ab+");
+    if (logFile) {
+        fprintf(logFile, fmt, vaargs);
+        fprintf(logFile, "\n");
+    }
+
+    fclose(logFile);
+    va_end(vaargs);
+}

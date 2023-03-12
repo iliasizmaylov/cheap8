@@ -144,7 +144,7 @@ VM_RESULT destroyVideoInterface(VideoInterface **m_interface) {
 	VideoInterface *interface = *m_interface;
 
 	if (interface != NULL) {
-		SDL_DestroyWindow(interface->window);
+        SDL_DestroyWindow(interface->window);
 		SDL_DestroyRenderer(interface->renderer);
 		free(interface);
 	}
@@ -338,6 +338,7 @@ VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags) {
 	vm->dbg = NULL;
     vm->flags = flags;
 
+    SDL_Init(SDL_INIT_EVENTS);
 	VM_ASSERT(initVideoInterface(&vm->video) != VM_RESULT_SUCCESS);
 	VM_ASSERT(initAudioInterface(&vm->audio) != VM_RESULT_SUCCESS);
 
@@ -370,7 +371,6 @@ VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags) {
  */
 VM_RESULT pollEvents(VM *vm) {
 	VM_ASSERT(vm == NULL);
-
 	SDL_Event ev;
 	while (SDL_PollEvent(&ev)) {
 		if (ev.type == SDL_QUIT) {
@@ -419,14 +419,14 @@ VM_RESULT runVM(VM *vm) {
 	Uint64 nextTicks;
 	Uint64 nextTimerTicks;
 	
-	BYTE isRunning = 1;
+	BYTE runningState = VM_RESULT_SUCCESS;
 
 	vm->core->opcode = GET_WORD(vm->core->memory[vm->core->PC], vm->core->memory[vm->core->PC + 1]);
 	if (vm->dbg != NULL && (vm->flags & VM_FLAG_DEBUGGER)) {
 		updateDebugger(vm->dbg);
 	}
 
-	while (isRunning == VM_RESULT_SUCCESS) {
+	while (runningState == VM_RESULT_SUCCESS) {
 		currentTicks = SDL_GetTicks64();
 		nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
 		nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_TIMER;
@@ -460,10 +460,10 @@ VM_RESULT runVM(VM *vm) {
 			stopBeep(vm->audio);
 		}
 
-		isRunning = pollEvents(vm);
+		runningState = pollEvents(vm);
 	}
 
-	return VM_RESULT_SUCCESS;
+	return runningState;
 }
 
 /** destroyVM
@@ -479,13 +479,13 @@ VM_RESULT destroyVM(VM **m_vm) {
 
 	VM_ASSERT(vm == NULL);
 
-	destroyAudioInterface(&vm->audio);
-	destroyVideoInterface(&vm->video);
-	destroyCore(&vm->core);
-
 	if (vm->dbg != NULL) {
 		destroyDebugger(&vm->dbg);
 	}
+
+	destroyAudioInterface(&vm->audio);
+	destroyVideoInterface(&vm->video);
+	destroyCore(&vm->core);
 
 	free(vm);
 	SDL_Quit();

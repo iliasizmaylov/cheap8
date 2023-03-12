@@ -114,9 +114,13 @@ int main (int argc, char **argv) {
 
     printf("Using ROM \"%s\"...\n", ROMFile);
 
+    VM_RESULT vmRunResult = VM_RESULT_SUCCESS;
 	if (initVM(&Chip8VirtualMachine, ROMFile, vmFlags) == VM_RESULT_SUCCESS) {
-		runVM(Chip8VirtualMachine);
+		vmRunResult = runVM(Chip8VirtualMachine);
 	}
+
+    if (vmRunResult == VM_RESULT_EVENT_SIGINT)
+        printf("Exited due to keyboard interrupt\n");
 
 	destroyVM(&Chip8VirtualMachine);
 

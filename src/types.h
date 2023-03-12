@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 #include <time.h>
 #include <math.h>
@@ -62,7 +63,9 @@ typedef enum {
 	VM_RESULT_ERROR,
 	VM_RESULT_SUCCESS,
 	VM_RESULT_EVENT_QUIT,
-	VM_RESULT_WARNING
+    VM_RESULT_EVENT_SIGINT,
+	VM_RESULT_WARNING,
+    VM_RESULT_COUNT
 } _VM_RESULT;
 
 typedef BYTE VM_RESULT;
@@ -83,5 +86,8 @@ typedef BYTE VM_RESULT;
 			return VM_RESULT_ERROR; \
 		} \
 	} while(0)
+
+#define DEFAULT_LOG_FILE "c8.log"
+void logToFile(const char *fmt, ...);
 
 #endif  /* _TYPES_H_ */
