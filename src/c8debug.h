@@ -36,6 +36,15 @@
 
 #include <ncurses.h>
 
+#define SCREEN_CONTENT_X_OFFSET         1
+#define SCREEN_CONTENT_Y_OFFSET         1
+
+#define S_LINES \
+    (LINES - SCREEN_CONTENT_Y_OFFSET * 2)
+
+#define S_COLS \
+    (COLS - SCREEN_CONTENT_X_OFFSET * 2)
+
 // Colors for ncurses interface
 // TODO: Probably it's best to represent these in a struct
 #define WINDOW_TITLE_COLOR				1
@@ -61,10 +70,10 @@
 
 // Enum for a more convenient way to identify and refer to debugger TUI windows
 typedef enum {
-	DEBUG_WINDOW_CURRENT_OPCODE,    // Window that shows current opcode being executed
+	DEBUG_WINDOW_CURRENT_OPCODE=0,  // Window that shows current opcode being executed
 	DEBUG_WINDOW_REGISTERS,         // Window showing state of all registers
-	DEBUG_WINDOW_MEMORY,            // Window that acts as a memory explorer
 	DEBUG_WINDOW_CUSTOM_FLAGS,      // Window that shows the state of custom flags
+	DEBUG_WINDOW_MEMORY,            // Window that acts as a memory explorer
     DEBUG_WINDOW_DISASM,            // Disassembler window
 	DEBUG_WINDOW_COUNT              // A placeholder that contains a count of all aforementioned windows
 } DebuggerWindows;
@@ -106,6 +115,8 @@ static const WINDOW_INIT g_debuggerInits[DEBUG_WINDOW_COUNT] = {
 	initCustomFlags,
     initDisasm
 };
+
+void generateWindowPos(DebuggerWindow *dwin, const BYTE *layout);
 
 // A struct defining all debugger window properties
 typedef struct _DebuggerWindow {

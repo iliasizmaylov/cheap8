@@ -78,7 +78,7 @@ typedef enum {
  * Each row represents 5 lines of 8 bits each
  * where each bit corresponds to a set or unset pixel on the screen
  */
-static const unsigned char fontset[FONTSET_SIZE] = { 
+static const unsigned char fontset[FONTSET_SIZE] = {
   0xF0, 0x90, 0x90, 0x90, 0xF0,	// 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
   0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -119,6 +119,14 @@ static const unsigned char fontset[FONTSET_SIZE] = {
 // Macro to concatenate to bytes into one word
 #define GET_WORD(byte1, byte2)			0 | (byte1 << 8) | byte2
 
+// Macro to get a certain bit from any integer value
+#define GET_BIT(val, bitidx) \
+   ((val >> bitidx) & 1)
+
+// Macro to get a bit from a value in big endian fashion (in reverse)
+#define GET_BIT_BE(val, bitidx) \
+    ((val >> ((sizeof(val)*8) - bitidx - 1)) & 1)
+
 // C8core struct representing all core parameters and elements
 typedef struct _C8core {
 	BYTE memory[MEMORY_SIZE];				// RAM
@@ -140,7 +148,7 @@ typedef struct _C8core {
 	BYTE tDelay;							// Delay 60Hz timer
 	BYTE tSound;							// Sound 60Hz timer
 
-	WORD keypadState;						// State of a 16 keys keypad (pressed/not pressed) 
+	WORD keypadState;						// State of a 16 keys keypad (pressed/not pressed)
 
 	BYTE customFlags;						// Some custom flags that might come in handy (idk)
 

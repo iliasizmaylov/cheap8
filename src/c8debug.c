@@ -8,6 +8,8 @@
  */
 
 #include "c8debug.h"
+#include "c8debug_layout.h"
+#include "c8comp.h"
 
 /* ======================= GENERIC FUNCTIONS ======================= */
 
@@ -28,6 +30,45 @@ void drawWindowBox(DebuggerWindow *window) {
     wmove(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET);
 }
 
+void generateWindowPos(DebuggerWindow *dwin, const BYTE *layout) {
+    dwin->xPos = 0;
+    dwin->yPos = 0;
+    dwin->lines = 0;
+    dwin->columns = 0;
+
+    int xChunk = -1;
+    int yChunk = -1;
+
+    for (int i = 0; i < DEFAULT_LAYOUT_ROWS; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (GET_BIT_BE(layout[i], j)) {
+                if (xChunk < 0) {
+                    dwin->xPos = j * SCREEN_CHUNK_COLS;
+                    xChunk = j;
+                    dwin->columns = SIZE_CHUNKS_COLS(xChunk, (j + 1));
+                } else {
+                    if (dwin->columns < SIZE_CHUNKS_COLS(xChunk, (j + 1)))
+                        dwin->columns = SIZE_CHUNKS_COLS(xChunk, (j + 1));
+                }
+
+                if (yChunk < 0) {
+                    dwin->yPos = i * SCREEN_CHUNK_LINES;
+                    yChunk = i;
+                    dwin->lines = SIZE_CHUNKS_LINES(yChunk, (i + 1));
+                } else {
+                    if (dwin->lines < SIZE_CHUNKS_LINES(yChunk, (i + 1)))
+                        dwin->lines = SIZE_CHUNKS_LINES(yChunk, (i + 1));
+                }
+            } 
+        }
+    }
+
+    dwin->xPos += SCREEN_CONTENT_X_OFFSET;
+    dwin->yPos += SCREEN_CONTENT_Y_OFFSET;
+
+    dwin->textLines = dwin->lines - 2;
+}
+
 /* ======================= INIT HANDLERS =========================== */
 
 /** initCurrentOpcode
@@ -38,14 +79,11 @@ void drawWindowBox(DebuggerWindow *window) {
  *  An init handler for a current opcode window
  */
 void initCurrentOpcode(DebuggerWindow *window) {
-	window->lines = 4;
-	window->columns = COLS;
-	window->yPos = 0;
-	window->xPos = 0;
+	window->title = " Current Opcode ";
 
+    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_CURRENT_OPCODE]);
 	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
-	window->title = " Current Opcode ";
 	drawWindowBox(window);
 }
 
@@ -57,14 +95,11 @@ void initCurrentOpcode(DebuggerWindow *window) {
  *  An init handler for a register state window
  */
 void initRegisters(DebuggerWindow *window) {
-	window->lines = LINES / 5.5;
-	window->columns = COLS / 2 - 1;
-	window->yPos = LINES / 1.3 + 4;
-	window->xPos = 0;
+	window->title = " Registers ";
 
+    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_REGISTERS]);
 	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
-	window->title = " Registers ";
 	drawWindowBox(window);
 }
 
@@ -76,14 +111,11 @@ void initRegisters(DebuggerWindow *window) {
  *  An init handler for a memory explorer window
  */
 void initMemory(DebuggerWindow *window) {
-	window->lines = LINES / 1.3;
-	window->columns = COLS / 2 - 1;
-	window->yPos = 4;
-	window->xPos = 0;
+	window->title = " Memory ";
 
+    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_MEMORY]);
 	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
-	window->title = " Memory ";
 	drawWindowBox(window);
 }
 
@@ -95,14 +127,11 @@ void initMemory(DebuggerWindow *window) {
  *  An init handler for a custom flag state window
  */
 void initCustomFlags(DebuggerWindow *window) {
-	window->lines = LINES / 5.5;
-	window->columns = COLS / 2;
-	window->yPos = LINES / 1.3 + 4;
-	window->xPos = COLS / 2;
-
+	window->title = " Custom Flags ";
+    
+    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_CUSTOM_FLAGS]);
 	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
-	window->title = " Custom Flags ";
 	drawWindowBox(window);
 }
 
@@ -114,15 +143,10 @@ void initCustomFlags(DebuggerWindow *window) {
  *  An init handler for a disassembler window
  */
 void initDisasm(DebuggerWindow *window) {
-    window->lines = LINES / 1.3;
-    window->columns = COLS / 2;
-    window->yPos = 4;
-    window->xPos = COLS / 2;
-
-    window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
-
     window->title = " Disassembly ";
-    window->textLines = 0;
+
+    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_DISASM]);
+    window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
     drawWindowBox(window);
 }
@@ -200,7 +224,7 @@ void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core* core) 
 		mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + row, WINDOW_CONTENT_X_OFFSET + col * 16, 
 				"%s = 0x%02X (%d)   ", regnames[i], core->reg[i], core->reg[i]);
 		row += 1;
-		if (row > window->textLines) {
+		if (row > 12) {
 			row = 0;
 			col += 1;
 		}
@@ -315,10 +339,20 @@ void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core
  *  Pointer to C8core struct representing a chip-8 system core state
  * @description:
  *  Update handler for a disassembler window
- *  TODO: Not implemented at this point so it needs to be implemented eventually
  */
-void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
-    // TODO
+void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) { 
+    for (int i = 0; i < window->textLines; i++) {
+        const Instruction *current = getInstructionAt(core->PC + i * 2);
+
+        logToFile("%s\n", current->readable);
+
+        if (current->op != NULL) {
+            mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, 
+                            "0x%03X    %s", current->addr, current->readable); 
+        } else {
+            mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "N/A");
+        }
+    }
 }
 
 /* ==================== DEBUGGER CONTEXT FUNCTIONS ================= */
@@ -333,6 +367,7 @@ void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
  */
 VM_RESULT updateDebugger(Debugger *dbg) {
 	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
+        werase(dbg->windows[i]->win);
 		dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
 		drawWindowBox(dbg->windows[i]);
 		wrefresh(dbg->windows[i]->win);
@@ -362,6 +397,8 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 	*m_dbg = (Debugger*) malloc(sizeof(Debugger));
 
 	VM_ASSERT(*m_dbg == NULL);
+
+    disassemble(_core);
 
 	Debugger *dbg = *m_dbg;
 	dbg->core = _core;
@@ -406,6 +443,8 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 VM_RESULT destroyDebugger(Debugger **m_dbg) {
 	VM_ASSERT(*m_dbg == NULL);
 	Debugger *dbg = *m_dbg;
+
+    destroyDisassembler();
 
 	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
 		if (dbg->windows[i]->win != NULL) {

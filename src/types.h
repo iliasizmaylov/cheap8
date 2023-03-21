@@ -21,8 +21,6 @@
 #include <time.h>
 #include <math.h>
 
-#include <pthread.h>
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 
@@ -88,6 +86,6 @@ typedef BYTE VM_RESULT;
 	} while(0)
 
 #define DEFAULT_LOG_FILE "c8.log"
-void logToFile(const char *fmt, ...);
+void logToFile(char *fmt, ...);
 
 #endif  /* _TYPES_H_ */

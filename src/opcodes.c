@@ -48,7 +48,7 @@ const Opcode OPCODES[OPCODE_COUNT] = {
             "Sets VX = VY - VX"},
 	{0xF00F, 0x800E, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SHLEFT_1, 
             "Stores MSB of VX in VF and shifts VX left by 1"},
-	{0xF00F, 0x0000, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SKIP_NEQ_REG, 
+	{0xF00F, 0x9000, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SKIP_NEQ_REG, 
             "Skip instruction if VX != VY"},
 	{0xF000, 0xA000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_SET_IDX, 
             "Sets I = NNN"},
@@ -110,7 +110,7 @@ void processOpcode(C8core *core) {
 		SET_CUSTOM_FLAG(core, CUSTOM_FLAG_BAD_OPCODE);
 		return;
 	}
-	
+
 	xParam = opcode->xParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->xParamMask) >> 8 : PARAMETER_UNUSED;
 	yParam = opcode->yParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->yParamMask) >> 4 : PARAMETER_UNUSED;
 	nParam = opcode->nParamMask != PARAMETER_UNUSED ? (opcodeRaw & opcode->nParamMask) : PARAMETER_UNUSED;
@@ -237,7 +237,7 @@ void handle_OP_SUB_REG(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 
 void handle_OP_SHRIGHT_1(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	core->reg[REG_VF] = (core->reg[xParam] & (1 << 0));
-	core->reg[xParam] >>= 1;
+	core->reg[xParam] >>= core->reg[yParam];
 }
 
 void handle_OP_REV_SUB_REG(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
@@ -247,7 +247,7 @@ void handle_OP_REV_SUB_REG(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) 
 
 void handle_OP_SHLEFT_1(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	core->reg[REG_VF] = (core->reg[xParam] & (1 << 7));
-	core->reg[xParam] <<= 1;
+	core->reg[xParam] <<= core->reg[yParam];
 }
 
 void handle_OP_SKIP_NEQ_REG(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
