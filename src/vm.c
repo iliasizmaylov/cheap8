@@ -369,7 +369,7 @@ VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags) {
  *  Used to poll for keyboard events
  *  TODO: Only supports SDL2, need to add support for other libs
  */
-VM_RESULT pollEvents(VM *vm) {
+VM_RESULT pollEvents(VM *vm, VM_RESULT dbgState) {
 	VM_ASSERT(vm == NULL);
 	SDL_Event ev;
 	while (SDL_PollEvent(&ev)) {
@@ -387,15 +387,17 @@ VM_RESULT pollEvents(VM *vm) {
 				}
 			}
 
-			WORD key = getKeyBitmask(ev.key.keysym.scancode);
+            if (dbgState == VM_RESULT_SUCCESS) {
+                WORD key = getKeyBitmask(ev.key.keysym.scancode);
 
-			if (key != WRONG_INPUT) {
-				if (ev.type == SDL_KEYDOWN) {
-					vm->core->keypadState |= key;
-				} else if (ev.type == SDL_KEYUP) {
-					vm->core->keypadState &= ~key;
-				}
-			}
+                if (key != WRONG_INPUT) {
+                    if (ev.type == SDL_KEYDOWN) {
+                        vm->core->keypadState |= key;
+                    } else if (ev.type == SDL_KEYUP) {
+                        vm->core->keypadState &= ~key;
+                    }
+                }
+            }
 		}
 	}
 
@@ -470,9 +472,9 @@ VM_RESULT runVM(VM *vm) {
             } else {
                 stopBeep(vm->audio);
             }
-
-            runningState = pollEvents(vm);
         }
+        
+        runningState = pollEvents(vm, dbgHeld);
 	}
 
 	return runningState;

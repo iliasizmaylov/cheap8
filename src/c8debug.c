@@ -302,10 +302,8 @@ void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core* core) 
  * @description:
  *  Update handler for memory explorer window
  *  Fetches memory from a current position given by core->PC register and displays it
- *  TODO: need to update it so it's actually an explorer and probably should use core->I register as well
  */
 void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
-	window->textLines = window->lines - 3;
 	WORD maxColumns = (window->columns - 2) / (WINDOW_MEMORY_COLUMN_OFFSET);
 	BYTE memEnd = 0;
 
@@ -314,27 +312,31 @@ void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
 			QWORD nextMem = core->PC + j - 1;
 			if (j == i * maxColumns) {
 				wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
-				mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET), 
-						"%03X:", nextMem);
+				mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, 
+                            WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET), 
+						    "%03X:", nextMem);
 				wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
 			} else {
 				if (nextMem <= MEMORY_RANGE_PROGRAM_MAX) {
 					if (j >= (i * maxColumns) + 1 && j <= (i * maxColumns) + 2 && i == 0) {
 						wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
 					}
-					mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET) + 1, 
-							"%02X ", core->memory[nextMem]);
+					mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, 
+                                WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET) + 1, 
+							    "%02X ", core->memory[nextMem]);
 					wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
 					
 				} else {
 					if (!memEnd) {
 						wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
-						mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET) + 1, 
-								WINDOW_MEMORY_END_CHAR);
+						mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, 
+                                    WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET) + 1, 
+								    WINDOW_MEMORY_END_CHAR);
 						wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
 					} else {
-						mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET) + 1, 
-								WINDOW_MEMORY_NO_MEM_CHAR);
+						mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, 
+                                    WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET) + 1, 
+								    WINDOW_MEMORY_NO_MEM_CHAR);
 					}
 					memEnd = 1;
 				}
@@ -377,11 +379,15 @@ void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core
 			} else {
 				wattron(window->win, COLOR_PAIR(WINDOW_FLAGS_ERROR_COLOR));
 			}
-			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "%s", flagnames[i]);
-			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 16, "(*)", flagnames[i]);
+			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, 
+                        "%s", flagnames[i]);
+			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 16, 
+                        "(*)", flagnames[i]);
 		} else {
-			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "%s", flagnames[i]);
-			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 16, "( )  ", flagnames[i]);
+			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, 
+                        "%s", flagnames[i]);
+			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 16, 
+                        "( )  ", flagnames[i]);
 		}
 		wattroff(window->win, A_BOLD);
 		wattroff(window->win, COLOR_PAIR(WINDOW_FLAGS_NORMAL_COLOR));
@@ -457,9 +463,18 @@ VM_RESULT updateDebugger(Debugger *dbg) {
         }
 	}
 
+    dbg->lastInput = (char)getch();
+    VM_RESULT ret = VM_RESULT_SUCCESS;
+
+    if (dbg->flags & FLAG_STEP_MODE)
+        ret = VM_RESULT_DBG;
+
+    if (dbg->lastInput != ERR)
+        ret = VM_RESULT_SUCCESS;
+
 	doupdate();
 
-	return VM_RESULT_SUCCESS;
+	return ret;
 }
 
 static const DebuggerColorPair dbgColorPairs[WINDOW_COLOR_END_NR] = {
@@ -510,12 +525,13 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 	dbg->flags = FLAG_STEP_MODE | FLAG_STOP_ON_ERROR;
 
     dbg->current = NULL;
-    dbg->lastInput = ' ';
+    dbg->lastInput = ERR;
 
     setlocale(LC_ALL, "");
 
 	initscr();
     keypad(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
 	start_color();
 	cbreak();
 	noecho();

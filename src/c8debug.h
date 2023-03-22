@@ -154,8 +154,8 @@ typedef struct _DebuggerWindow {
 	WINDOW_INIT initHandler;
 } DebuggerWindow;
 
-#define FLAG_STEP_MODE      1 << 0
-#define FLAG_STOP_ON_ERROR  1 << 1
+#define FLAG_STEP_MODE      (1 << 0)
+#define FLAG_STOP_ON_ERROR  (1 << 1)
 
 // A struct (should be a singleton) that defines the whole debugger context
 typedef struct _Debugger {

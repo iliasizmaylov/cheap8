@@ -101,7 +101,7 @@ typedef struct _VM {
 } VM;
 
 VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags);
-VM_RESULT pollEvents(VM *vm);
+VM_RESULT pollEvents(VM *vm, VM_RESULT dbgState);
 VM_RESULT runVM(VM *vm);
 VM_RESULT destroyVM(VM **m_vm);
 
