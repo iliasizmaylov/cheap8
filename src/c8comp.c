@@ -109,6 +109,24 @@ const Instruction *getInstructionAt(WORD addr) {
     return g_disasmem[addr];
 };
 
+static void setAsmstr(Instruction *instr) {
+    if (instr->op == NULL)
+        return;
+
+    char xstr[6] = "";
+    char ystr[6] = "";
+    char nstr[8] = "";
+
+    if (instr->xParam != PARAMETER_UNUSED)
+        sprintf(xstr, " V%u", instr->xParam);
+    if (instr->yParam != PARAMETER_UNUSED)
+        sprintf(ystr, " V%u", instr->yParam);
+    if (instr->nParam != PARAMETER_UNUSED)
+        sprintf(nstr, " 0x%03X", instr->nParam);
+
+   sprintf(instr->asmstr, "%-5s%s%s%s", instr->op->opasm, xstr, ystr, nstr);
+}
+
 /** rawToInstruction
  *
  * @param: raw
@@ -137,6 +155,9 @@ VM_RESULT rawToInstruction(WORD raw, Instruction *out) {
     out->yParam = yParam;
     out->nParam = nParam;
 
+    setAsmstr(out);
+    optostrfn[idx](out);
+
     return VM_RESULT_SUCCESS;
 }
 
@@ -158,7 +179,6 @@ VM_RESULT disassemble(const C8core *core) {
             g_disasmem[i] = malloc(sizeof(Instruction));
             g_disasmem[i]->addr = i;
             rawToInstruction(GET_WORD(core->memory[i], core->memory[i] + 1), g_disasmem[i]);
-            optostrfn[g_disasmem[i]->opidx](g_disasmem[i]);
         }
     }
 
@@ -166,7 +186,7 @@ VM_RESULT disassemble(const C8core *core) {
     return VM_RESULT_SUCCESS;
 }
 
-/** destroyDisassebler
+/** destroyDisassembler
  *
  * @descrption:
  *  Frees memory allocated for g_disasmem (if it has been allocated)

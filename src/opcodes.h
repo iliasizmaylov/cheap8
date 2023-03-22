@@ -20,6 +20,8 @@
 // which is a type of function that would emulate each opcode
 typedef void (*OPCODE_HANDLER)(C8core*, BYTE, BYTE, WORD);
 
+#define MAX_OP_ASM_LENGTH  5
+
 // Data structure holding all data related to a single opcode
 typedef struct _Opcode {
 	WORD opcodeMask;        // Bitmask that can be used to identify each single opcode
@@ -28,6 +30,10 @@ typedef struct _Opcode {
 	WORD yParamMask;        // Bitmask that's used to extract the Y (register 2 number) parameter
 	WORD nParamMask;        // Bitmask that's used to extract the N (constant) parameter
 	OPCODE_HANDLER handler; // Function pointer to an opcode handling function
+
+    // chip-8 assembler command corresponding to
+    // this opcode
+    const char *opasm;
 
     // Just a bunch of text describing an opcode briefly
     // Used in a debugger

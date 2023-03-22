@@ -30,7 +30,7 @@ void drawWindowBox(DebuggerWindow *window) {
     wmove(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET);
 }
 
-void generateWindowPos(DebuggerWindow *dwin, const BYTE *layout) {
+void generateWindowPos(DebuggerWindow *dwin) {
     dwin->xPos = 0;
     dwin->yPos = 0;
     dwin->lines = 0;
@@ -40,8 +40,8 @@ void generateWindowPos(DebuggerWindow *dwin, const BYTE *layout) {
     int yChunk = -1;
 
     for (int i = 0; i < DEFAULT_LAYOUT_ROWS; i++) {
-        for (int j = 0; j < 8; j++) {
-            if (GET_BIT_BE(layout[i], j)) {
+        for (int j = 0; j < DEFAULT_LAYOUT_COLS; j++) {
+            if (g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + j] == dwin->literal) {
                 if (xChunk < 0) {
                     dwin->xPos = j * SCREEN_CHUNK_COLS;
                     xChunk = j;
@@ -59,7 +59,7 @@ void generateWindowPos(DebuggerWindow *dwin, const BYTE *layout) {
                     if (dwin->lines < SIZE_CHUNKS_LINES(yChunk, (i + 1)))
                         dwin->lines = SIZE_CHUNKS_LINES(yChunk, (i + 1));
                 }
-            } 
+            }
         }
     }
 
@@ -67,6 +67,15 @@ void generateWindowPos(DebuggerWindow *dwin, const BYTE *layout) {
     dwin->yPos += SCREEN_CONTENT_Y_OFFSET;
 
     dwin->textLines = dwin->lines - 2;
+}
+
+void drawBlock(WINDOW *win, int y, int x, int w, int h) {
+    for (int i = 0; i < h; i++) {
+        wmove(win, y + i, x);
+        for (int j = 0; j < w; j++) {
+            wprintw(win, "%s", "▓");
+        }
+    }
 }
 
 /* ======================= INIT HANDLERS =========================== */
@@ -80,8 +89,15 @@ void generateWindowPos(DebuggerWindow *dwin, const BYTE *layout) {
  */
 void initCurrentOpcode(DebuggerWindow *window) {
 	window->title = " Current Opcode ";
+    window->literal = 'o';
 
-    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_CURRENT_OPCODE]);
+    generateWindowPos(window);
+
+    if (window->lines == 0 && window->columns == 0) {
+        window->win = NULL;
+        return;
+    }
+
 	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
 	drawWindowBox(window);
@@ -96,8 +112,15 @@ void initCurrentOpcode(DebuggerWindow *window) {
  */
 void initRegisters(DebuggerWindow *window) {
 	window->title = " Registers ";
+    window->literal = 'r';
 
-    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_REGISTERS]);
+    generateWindowPos(window);
+
+    if (window->lines == 0 && window->columns == 0) {
+        window->win = NULL;
+        return;
+    }
+
 	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
 	drawWindowBox(window);
@@ -112,8 +135,15 @@ void initRegisters(DebuggerWindow *window) {
  */
 void initMemory(DebuggerWindow *window) {
 	window->title = " Memory ";
+    window->literal = 'm';
 
-    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_MEMORY]);
+    generateWindowPos(window);
+
+    if (window->lines == 0 && window->columns == 0) {
+        window->win = NULL;
+        return;
+    }
+
 	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
 	drawWindowBox(window);
@@ -128,8 +158,15 @@ void initMemory(DebuggerWindow *window) {
  */
 void initCustomFlags(DebuggerWindow *window) {
 	window->title = " Custom Flags ";
-    
-    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_CUSTOM_FLAGS]);
+    window->literal = 'f';
+
+    generateWindowPos(window);
+
+    if (window->lines == 0 && window->columns == 0) {
+        window->win = NULL;
+        return;
+    }
+
 	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
 	drawWindowBox(window);
@@ -144,8 +181,31 @@ void initCustomFlags(DebuggerWindow *window) {
  */
 void initDisasm(DebuggerWindow *window) {
     window->title = " Disassembly ";
+    window->literal = 'd';
 
-    generateWindowPos(window, windowLayouts[DEBUG_WINDOW_DISASM]);
+    generateWindowPos(window);
+
+    if (window->lines == 0 && window->columns == 0) {
+        window->win = NULL;
+        return;
+    }
+
+    window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
+
+    drawWindowBox(window);
+}
+
+void initVMdbg(DebuggerWindow *window) {
+    window->title = " Cheap-8 Display ";
+    window->literal = 'v';
+
+    generateWindowPos(window);
+
+    if (window->lines == 0 && window->columns == 0) {
+        window->win = NULL;
+        return;
+    }
+
     window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
 
     drawWindowBox(window);
@@ -171,7 +231,6 @@ void updateCurrentOpcode(Debugger *dbg, DebuggerWindow *window, const C8core* co
 	wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
 	wprintw(window->win, "%04X", core->opcode);
 	wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
-	wclrtoeol(window->win);
 	wprintw(window->win, " | PC: %04X | ", core->PC);
 	
 	wprintw(window->win, "X Param: ");
@@ -195,7 +254,8 @@ void updateCurrentOpcode(Debugger *dbg, DebuggerWindow *window, const C8core* co
 		wprintw(window->win, "0x%02X | ", core->nParam);
 	}
 
-    wprintw(window->win, " Description: %s", OPCODES[getOpcodeIndex(core->opcode)].description);
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 1, WINDOW_CONTENT_X_OFFSET, 
+                "Description: %s", OPCODES[getOpcodeIndex(core->opcode)].description);
 }
 
 /** updateRegisters
@@ -224,7 +284,7 @@ void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core* core) 
 		mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + row, WINDOW_CONTENT_X_OFFSET + col * 16, 
 				"%s = 0x%02X (%d)   ", regnames[i], core->reg[i], core->reg[i]);
 		row += 1;
-		if (row > 12) {
+		if (row > window->textLines) {
 			row = 0;
 			col += 1;
 		}
@@ -299,14 +359,14 @@ void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core
 	window->textLines = window->lines - 3;
 
 	static const char *flagnames[8] = {
-		"CUSTOM_FLAG_REDRAW_PENDING",
-		"CUSTOM_FLAG_BAD_INPUT",
-		"CUSTOM_FLAG_BAD_STACK",
-		"CUSTOM_FLAG_BAD_OPCODE",
-		"CUSTOM_FLAG_BAD_MEMORY",
-		"CUSTOM_FLAG_BAD_SP",
-		"CUSTOM_FLAG_MCR_OPCODE",
-		"CUSTOM_FLAG_CRITICAL_ERROR"
+		"REDRAW_PENDING",
+		"BAD_INPUT",
+		"BAD_STACK",
+		"BAD_OPCODE",
+		"BAD_MEMORY",
+		"BAD_SP",
+		"MCR_OPCODE",
+		"CRITICAL_ERROR"
 	};
 
 	for (BYTE i = 0; i < 8; i++) {
@@ -318,10 +378,10 @@ void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core
 				wattron(window->win, COLOR_PAIR(WINDOW_FLAGS_ERROR_COLOR));
 			}
 			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "%s", flagnames[i]);
-			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 32, "( * )", flagnames[i]);
+			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 16, "(*)", flagnames[i]);
 		} else {
 			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "%s", flagnames[i]);
-			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 32, "( )  ", flagnames[i]);
+			mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 16, "( )  ", flagnames[i]);
 		}
 		wattroff(window->win, A_BOLD);
 		wattroff(window->win, COLOR_PAIR(WINDOW_FLAGS_NORMAL_COLOR));
@@ -341,19 +401,41 @@ void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core
  *  Update handler for a disassembler window
  */
 void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) { 
+    const char *fmt_current = "=>0x%03X  %-20s# %s";
+    const char *fmt_not_current = "  0x%03X  %-20s# %s";
+    const char *fmt_selected = fmt_current;
+
     for (int i = 0; i < window->textLines; i++) {
         const Instruction *current = getInstructionAt(core->PC + i * 2);
 
-        logToFile("%s\n", current->readable);
-
         if (current->op != NULL) {
+            fmt_selected = i == 0 ? fmt_current : fmt_not_current;
             mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, 
-                            "0x%03X    %s", current->addr, current->readable); 
+                            fmt_selected, current->addr, current->asmstr, current->readable); 
         } else {
             mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "N/A");
         }
     }
 }
+
+void updateVMdbg(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
+    QWORD currentRow = 0;
+
+    BYTE pxh = window->lines / SCREEN_RESOLUTION_HEIGHT;
+    BYTE pxw = window->columns / SCREEN_RESOLUTION_WIDTH;
+
+    for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
+        currentRow = core->gfx[i];
+        for (BYTE j = 0; j < SCREEN_RESOLUTION_WIDTH; j++) {
+            if (GET_BIT_BE(currentRow, j)) {
+                drawBlock(window->win, WINDOW_CONTENT_Y_OFFSET + i * pxh, WINDOW_CONTENT_X_OFFSET + j * pxw,
+                            pxw, pxh);
+            }
+        }
+    }
+
+    return;
+};
 
 /* ==================== DEBUGGER CONTEXT FUNCTIONS ================= */
 
@@ -367,16 +449,39 @@ void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
  */
 VM_RESULT updateDebugger(Debugger *dbg) {
 	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
-        werase(dbg->windows[i]->win);
-		dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
-		drawWindowBox(dbg->windows[i]);
-		wrefresh(dbg->windows[i]->win);
+        if (dbg->windows[i]->win != NULL) {
+            werase(dbg->windows[i]->win);
+            dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
+            drawWindowBox(dbg->windows[i]);
+            wrefresh(dbg->windows[i]->win);
+        }
 	}
 
 	doupdate();
 
 	return VM_RESULT_SUCCESS;
 }
+
+static const DebuggerColorPair dbgColorPairs[WINDOW_COLOR_END_NR] = {
+    /* Placeholder for 0th color pair that is reserved by curses lib*/ {
+        .fc = 0, .bc = 0
+    },
+    /* WINDOW_TITLE_COLOR */ {
+        .fc = COLOR_BLACK, .bc = COLOR_WHITE
+    },
+    /* WINDOW_MEMORY_END_COLOR */ {
+        .fc = COLOR_BLACK, .bc = COLOR_WHITE
+    },
+    /* WINDOW_MEMORY_OPCODE_COLOR */ {
+        .fc = COLOR_GREEN, .bc = COLOR_BLACK
+    },
+    /* WINDOW_FLAGS_ERROR_COLOR */ {
+        .fc = COLOR_RED, .bc = COLOR_BLACK
+    },
+    /* WINDOW_FLAGS_NORMAL_COLOR */ {
+        .fc = COLOR_GREEN, .bc = COLOR_BLACK
+    }
+};
 
 /** initDebugger
  *
@@ -402,19 +507,23 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 
 	Debugger *dbg = *m_dbg;
 	dbg->core = _core;
-	dbg->flags = 0;
+	dbg->flags = FLAG_STEP_MODE | FLAG_STOP_ON_ERROR;
+
+    dbg->current = NULL;
+    dbg->lastInput = ' ';
+
+    setlocale(LC_ALL, "");
 
 	initscr();
+    keypad(stdscr, TRUE);
 	start_color();
 	cbreak();
 	noecho();
 	curs_set(0);
 
-	init_pair(WINDOW_TITLE_COLOR, COLOR_BLACK, COLOR_WHITE);
-	init_pair(WINDOW_MEMORY_END_COLOR, COLOR_BLACK, COLOR_WHITE);
-	init_pair(WINDOW_MEMORY_OPCODE_COLOR, COLOR_GREEN, COLOR_BLACK);
-	init_pair(WINDOW_FLAGS_ERROR_COLOR, COLOR_RED, COLOR_BLACK);
-	init_pair(WINDOW_FLAGS_NORMAL_COLOR, COLOR_GREEN, COLOR_BLACK);
+    for (BYTE i = WINDOW_COLOR_START_NR; i < WINDOW_COLOR_END_NR; i++) {
+        init_pair(i, dbgColorPairs[i].fc, dbgColorPairs[i].bc);
+    }
 
 	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
 		dbg->windows[i] = NULL;

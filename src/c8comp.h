@@ -15,7 +15,9 @@
 #define MAX_INSTRUCTION_COUNT \
     ((MEMORY_RANGE_PROGRAM_MAX - MEMORY_RANGE_PROGRAM_MIN) / 2)
 
-#define MAX_INSTR_READABLE_LENGTH   1 << 5
+#define MAX_INSTR_READABLE_LENGTH   (1 << 5)
+#define MAX_INSTR_ASM_LENGTH        (1 << 5)
+
 typedef struct _Instruction {
     const Opcode *op;
     BYTE opidx;
@@ -24,17 +26,18 @@ typedef struct _Instruction {
     WORD xParam;
     WORD yParam;
     WORD nParam;
+
+    char asmstr[MAX_INSTR_ASM_LENGTH];
     char readable[MAX_INSTR_READABLE_LENGTH];
 } Instruction;
 
 static inline WORD alignAddress(WORD inputAddress);
-
 const Instruction *getInstructionAt(WORD addr);
 
+static void setAsmstr(Instruction *instr);
 VM_RESULT rawToInstruction(WORD raw, Instruction *out);
 
 VM_RESULT disassemble(const C8core *core);
-
 VM_RESULT destroyDisassembler();
 
 /* =================== OPCODE TO STRING FUNCTIONS =================== */

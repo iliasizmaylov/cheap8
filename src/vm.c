@@ -415,23 +415,30 @@ VM_RESULT pollEvents(VM *vm) {
 VM_RESULT runVM(VM *vm) {
 	VM_ASSERT(vm == NULL);
 
-	Uint64 currentTicks;
-	Uint64 nextTicks;
-	Uint64 nextTimerTicks;
-	
-	BYTE runningState = VM_RESULT_SUCCESS;
+	Uint64 currentTicks = 0;
+	Uint64 nextTicks = 0;
+	Uint64 nextTimerTicks = 0;
+
+	VM_RESULT runningState = VM_RESULT_SUCCESS;
+    VM_RESULT dbgHeld = VM_RESULT_SUCCESS;
 
 	vm->core->opcode = GET_WORD(vm->core->memory[vm->core->PC], vm->core->memory[vm->core->PC + 1]);
 	if (vm->dbg != NULL && (vm->flags & VM_FLAG_DEBUGGER)) {
-		updateDebugger(vm->dbg);
-	}
+		dbgHeld = updateDebugger(vm->dbg);
+    }
 
 	while (runningState == VM_RESULT_SUCCESS) {
 		currentTicks = SDL_GetTicks64();
-		nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
-		nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_TIMER;
+        
+        if (dbgHeld == VM_RESULT_SUCCESS) {
+            nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
+            nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_TIMER;
+        } else {
+            nextTicks = currentTicks + CORE_TICKS_PER_CYCLE;
+            nextTimerTicks = currentTicks + CORE_TICKS_PER_TIMER;
+        }
 
-		if (currentTicks < nextTicks) {
+		if (currentTicks < nextTicks && dbgHeld == VM_RESULT_SUCCESS) {
 			SDL_Delay(nextTicks - currentTicks);
 		}
 
@@ -443,24 +450,29 @@ VM_RESULT runVM(VM *vm) {
 			vm->core->prevTimerTicks = currentTicks;
 		}
 
-		processOpcode(vm->core);
-		vm->core->opcode = GET_WORD(vm->core->memory[vm->core->PC], vm->core->memory[vm->core->PC + 1]);
+        if (dbgHeld == VM_RESULT_SUCCESS) {
+            processOpcode(vm->core);
+            vm->core->opcode = GET_WORD(vm->core->memory[vm->core->PC], vm->core->memory[vm->core->PC + 1]);
+        }
+
 		if (vm->dbg != NULL && (vm->flags & VM_FLAG_DEBUGGER)) {
-			updateDebugger(vm->dbg);
-		}
+			dbgHeld = updateDebugger(vm->dbg);
+        }
 
-		if (CHECK_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_REDRAW_PENDING)) {
-			redrawScreen(vm->video, vm->core->gfx);
-			UNSET_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_REDRAW_PENDING);
-		}
+        if (dbgHeld == VM_RESULT_SUCCESS) {
+            if (CHECK_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_REDRAW_PENDING)) {
+                redrawScreen(vm->video, vm->core->gfx);
+                UNSET_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_REDRAW_PENDING);
+            }
 
-		if (vm->core->tSound > 0) {
-			startBeep(vm->audio);
-		} else {
-			stopBeep(vm->audio);
-		}
+            if (vm->core->tSound > 0) {
+                startBeep(vm->audio);
+            } else {
+                stopBeep(vm->audio);
+            }
 
-		runningState = pollEvents(vm);
+            runningState = pollEvents(vm);
+        }
 	}
 
 	return runningState;
