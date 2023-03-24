@@ -22,11 +22,20 @@
  *  Generic function that can be used with any debugger window
  *  that draws a border around the window and window title
  */
-void drawWindowBox(DebuggerWindow *window) {
-	box(window->win, 0, 0);
-	wattron(window->win, COLOR_PAIR(WINDOW_TITLE_COLOR));
-	mvwprintw(window->win, 0, WINDOW_TITLE_OFFSET, window->title);
-	wattroff(window->win, COLOR_PAIR(WINDOW_TITLE_COLOR));
+void drawWindowBox(Debugger *dbg, DebuggerWindow *window) {
+	if (dbg->current == window)
+        wattron(window->win, COLOR_PAIR(WINDOW_BORDER_SELECTED_COLOR));
+    box(window->win, 0, 0);
+	if (dbg->current == window)
+        wattroff(window->win, COLOR_PAIR(WINDOW_BORDER_SELECTED_COLOR));
+
+    int tc = dbg->current == window ? 
+            COLOR_PAIR(WINDOW_TITLE_SELECTED_COLOR) : 
+            COLOR_PAIR(WINDOW_TITLE_COLOR);
+
+    wattron(window->win, tc);
+	mvwprintw(window->win, 0, WINDOW_TITLE_OFFSET, " %s ", window->title);
+	wattroff(window->win, tc);
     wmove(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET);
 }
 
@@ -36,12 +45,44 @@ void generateWindowPos(DebuggerWindow *dwin) {
     dwin->lines = 0;
     dwin->columns = 0;
 
+    dwin->left = NULL;
+    dwin->right = NULL;
+    dwin->up = NULL;
+    dwin->down = NULL;
+
     int xChunk = -1;
     int yChunk = -1;
 
+    char cl;
+
     for (int i = 0; i < DEFAULT_LAYOUT_ROWS; i++) {
         for (int j = 0; j < DEFAULT_LAYOUT_COLS; j++) {
-            if (g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + j] == dwin->literal) {
+            cl = g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + j];
+            if (cl == dwin->literal) {
+                if (j > 0 && dwin->left == NULL) {
+                    if (g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + (j - 1)] != cl) {
+                        dwin->left = findByLiteral(g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + (j - 1)]);
+                    }
+                }
+
+                if (j < (DEFAULT_LAYOUT_ROWS - 1) && dwin->right == NULL) {
+                    if (g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + (j + 1)] != cl) {
+                        dwin->right = findByLiteral(g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + (j + 1)]);
+                    }
+                }
+                    
+                if (i > 0 && dwin->up == NULL) {
+                    if (g_debuggerLayout[(i - 1) * DEFAULT_LAYOUT_ROWS + j] != cl) {
+                        dwin->up = findByLiteral(g_debuggerLayout[(i - 1) * DEFAULT_LAYOUT_ROWS + j]);
+                    }
+                }
+
+                if (i < (DEFAULT_LAYOUT_ROWS - 1) && dwin->down == NULL) {
+                    if (g_debuggerLayout[(i + 1) * DEFAULT_LAYOUT_ROWS + j] != cl) {
+                        dwin->down = findByLiteral(g_debuggerLayout[(i + 1) * DEFAULT_LAYOUT_ROWS + j]);
+                    }
+                }
+
                 if (xChunk < 0) {
                     dwin->xPos = j * SCREEN_CHUNK_COLS;
                     xChunk = j;
@@ -78,185 +119,7 @@ void drawBlock(WINDOW *win, int y, int x, int w, int h) {
     }
 }
 
-/* ======================= INIT HANDLERS =========================== */
-
-/** initCurrentOpcode
- * 
- * @param window
- *  Pointer to DebuggerWindow struct representing a current opcode window
- * @description:
- *  An init handler for a current opcode window
- */
-void initCurrentOpcode(DebuggerWindow *window) {
-	window->title = " Current Opcode ";
-    window->literal = 'o';
-
-    generateWindowPos(window);
-
-    if (window->lines == 0 && window->columns == 0) {
-        window->win = NULL;
-        return;
-    }
-
-	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
-
-	drawWindowBox(window);
-}
-
-/** initRegisters
- *
- * @param window
- *  Pointer to DebuggerWindow struct representing a register state window
- * @description:
- *  An init handler for a register state window
- */
-void initRegisters(DebuggerWindow *window) {
-	window->title = " Registers ";
-    window->literal = 'r';
-
-    generateWindowPos(window);
-
-    if (window->lines == 0 && window->columns == 0) {
-        window->win = NULL;
-        return;
-    }
-
-	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
-
-	drawWindowBox(window);
-}
-
-/** initMemory
- *
- * @param window
- *  Pointer to a DebuggerWindow struct representing a memory explorer window
- * @description:
- *  An init handler for a memory explorer window
- */
-void initMemory(DebuggerWindow *window) {
-	window->title = " Memory ";
-    window->literal = 'm';
-
-    generateWindowPos(window);
-
-    if (window->lines == 0 && window->columns == 0) {
-        window->win = NULL;
-        return;
-    }
-
-	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
-
-	drawWindowBox(window);
-}
-
-/** initCustomFlags
- *
- * @param window
- *  Pointer to a DebuggerWindow struct representing a custom flag state window
- * @description:
- *  An init handler for a custom flag state window
- */
-void initCustomFlags(DebuggerWindow *window) {
-	window->title = " Custom Flags ";
-    window->literal = 'f';
-
-    generateWindowPos(window);
-
-    if (window->lines == 0 && window->columns == 0) {
-        window->win = NULL;
-        return;
-    }
-
-	window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
-
-	drawWindowBox(window);
-}
-
-/** initDisasm
- *
- * @param window
- *  Pointer to a DebuggerWindow struct representing a disassembler window
- * @description:
- *  An init handler for a disassembler window
- */
-void initDisasm(DebuggerWindow *window) {
-    window->title = " Disassembly ";
-    window->literal = 'd';
-
-    generateWindowPos(window);
-
-    if (window->lines == 0 && window->columns == 0) {
-        window->win = NULL;
-        return;
-    }
-
-    window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
-
-    drawWindowBox(window);
-}
-
-void initVMdbg(DebuggerWindow *window) {
-    window->title = " Cheap-8 Display ";
-    window->literal = 'v';
-
-    generateWindowPos(window);
-
-    if (window->lines == 0 && window->columns == 0) {
-        window->win = NULL;
-        return;
-    }
-
-    window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
-
-    drawWindowBox(window);
-}
-
 /* ======================= UPDATE HANDLERS ========================= */
-
-/** updateCurrentOpcode
- *
- * @param dbg
- *  Pointer to a Debugger struct representing the debugger context
- * @param window
- *  Pointer to a DebuggerWindow struct representing a current opcode window
- * @param core
- *  Pointer to a C8core struct representing a chip-8 system core state
- * @description:
- *  Update handler for a current opcode window
- *  Fetches current opcore from core->PC amd displays brief info about it
- */
-void updateCurrentOpcode(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
-	window->textLines = 1;
-	mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET, "OPCODE: ");
-	wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
-	wprintw(window->win, "%04X", core->opcode);
-	wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
-	wprintw(window->win, " | PC: %04X | ", core->PC);
-	
-	wprintw(window->win, "X Param: ");
-	if (core->xParam == 0xFFFF) {
-		wprintw(window->win, "NULL | ");
-	} else {
-		wprintw(window->win, "0x%02X | ", core->xParam);
-	}
-
-	wprintw(window->win, "Y Param: ");
-	if (core->yParam == 0xFFFF) {
-		wprintw(window->win, "NULL | ");
-	} else {
-		wprintw(window->win, "0x%02X | ", core->yParam);
-	}
-
-	wprintw(window->win, "N Param: ");
-	if (core->nParam == 0xFFFF) {
-		wprintw(window->win, "NULL | ");
-	} else {
-		wprintw(window->win, "0x%02X | ", core->nParam);
-	}
-
-    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 1, WINDOW_CONTENT_X_OFFSET, 
-                "Description: %s", OPCODES[getOpcodeIndex(core->opcode)].description);
-}
 
 /** updateRegisters
  *
@@ -278,16 +141,19 @@ void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core* core) 
 		"VA", "VB", "VC", "VD", "VE",
 		"VF"
 	};
-	BYTE col = 0;
-	BYTE row = 0;
+
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET, 
+            "PC = 0x%03X (%u)   ", core->PC, core->PC);
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 1, WINDOW_CONTENT_X_OFFSET, 
+            "I  = 0x%03X (%u)   ", core->I, core->I);
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 2, WINDOW_CONTENT_X_OFFSET, 
+            "SP = 0x%03X (%u)   ", core->SP, core->SP);
+
+	BYTE row = 4;
 	for (BYTE i = 0; i < GENERAL_PURPOSE_REGISTERS; i++) {
-		mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + row, WINDOW_CONTENT_X_OFFSET + col * 16, 
-				"%s = 0x%02X (%d)   ", regnames[i], core->reg[i], core->reg[i]);
+		mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + row, WINDOW_CONTENT_X_OFFSET, 
+				"%s = 0x%03X (%u)   ", regnames[i], core->reg[i], core->reg[i]);
 		row += 1;
-		if (row > window->textLines) {
-			row = 0;
-			col += 1;
-		}
 	}
 }
 
@@ -439,11 +305,47 @@ void updateVMdbg(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
             }
         }
     }
-
-    return;
 };
 
+void updatePreview(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
+    BYTE pxh = window->lines / 10;
+    BYTE pxw = window->columns / 8;
+
+    BYTE currentRow = 0; 
+
+    for (BYTE i = 0; i < 10; i++) {
+        currentRow = core->memory[core->I + i];
+        for (BYTE j = 0; j < 8; j++) {
+            if (GET_BIT_BE(currentRow, j)) {
+                drawBlock(window->win, WINDOW_CONTENT_Y_OFFSET + i * pxh, WINDOW_CONTENT_X_OFFSET + j * pxw,
+                            pxw, pxh);
+            }
+        }
+    }
+}
+
+void updateStack(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
+    for (BYTE i = 0; i < STACK_SIZE; i++) {
+        if (i < core->SP) {
+            mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 6,
+                        "[0x%04X]", core->stack[i]);
+        } else {
+            if (i == core->SP)
+                mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "SP => ");
+
+            mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET + 6, "[      ]");
+        }
+    }
+}
+
 /* ==================== DEBUGGER CONTEXT FUNCTIONS ================= */
+
+static inline DebuggerWindow *getadj(DebuggerWindow *cur, BYTE side) {
+    if (side >= WINDOW_SIDES || cur == NULL)
+        return NULL;
+     
+    return cur->adj[side] == NULL ? cur : cur->adj[side];
+}
 
 /** updateDebugger
  *
@@ -458,23 +360,56 @@ VM_RESULT updateDebugger(Debugger *dbg) {
         if (dbg->windows[i]->win != NULL) {
             werase(dbg->windows[i]->win);
             dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
-            drawWindowBox(dbg->windows[i]);
+            drawWindowBox(dbg, dbg->windows[i]);
             wrefresh(dbg->windows[i]->win);
         }
 	}
 
-    dbg->lastInput = (char)getch();
+    dbg->lastInput = getch();
     VM_RESULT ret = VM_RESULT_SUCCESS;
 
-    if (dbg->flags & FLAG_STEP_MODE)
+    switch(dbg->lastInput) {
+        case KEY_UP:
+            dbg->current = getadj(dbg->current, WINDOW_UP);
+            break;
+        case KEY_DOWN:
+            dbg->current = getadj(dbg->current, WINDOW_DOWN);
+            break;
+        case KEY_LEFT:
+            dbg->current = getadj(dbg->current, WINDOW_LEFT);
+            break;
+        case KEY_RIGHT:
+            dbg->current = getadj(dbg->current, WINDOW_RIGHT);
+            break;
+    }
+
+    if (dbg->flags & DEBUGGER_FLAG_STEP_MODE)
         ret = VM_RESULT_DBG;
 
-    if (dbg->lastInput != ERR)
+    if (dbg->lastInput == ' ')
         ret = VM_RESULT_SUCCESS;
 
 	doupdate();
 
 	return ret;
+}
+
+void initWindow(Debugger *dbg, DebuggerWindow *window) {
+    generateWindowPos(window);
+    
+    window->adj[WINDOW_LEFT] = window->left;
+    window->adj[WINDOW_RIGHT] = window->right;
+    window->adj[WINDOW_UP] = window->up;
+    window->adj[WINDOW_DOWN] = window->down;
+
+    if (window->lines == 0 && window->columns == 0) {
+        window->win = NULL;
+        return;
+    }
+
+    window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
+
+    drawWindowBox(dbg, window);
 }
 
 static const DebuggerColorPair dbgColorPairs[WINDOW_COLOR_END_NR] = {
@@ -483,6 +418,12 @@ static const DebuggerColorPair dbgColorPairs[WINDOW_COLOR_END_NR] = {
     },
     /* WINDOW_TITLE_COLOR */ {
         .fc = COLOR_BLACK, .bc = COLOR_WHITE
+    },
+    /* WINDOW_BORDER_SELECTED_COLOR */ {
+        .fc = COLOR_YELLOW, .bc = COLOR_BLACK
+    },
+    /* WINDOW_TITLE_SELECTED_COLOR */ {
+        .fc = COLOR_BLACK, .bc = COLOR_YELLOW
     },
     /* WINDOW_MEMORY_END_COLOR */ {
         .fc = COLOR_BLACK, .bc = COLOR_WHITE
@@ -522,9 +463,8 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 
 	Debugger *dbg = *m_dbg;
 	dbg->core = _core;
-	dbg->flags = FLAG_STEP_MODE | FLAG_STOP_ON_ERROR;
+	dbg->flags = DEBUGGER_FLAG_STEP_MODE;
 
-    dbg->current = NULL;
     dbg->lastInput = ERR;
 
     setlocale(LC_ALL, "");
@@ -541,14 +481,11 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
         init_pair(i, dbgColorPairs[i].fc, dbgColorPairs[i].bc);
     }
 
+    dbg->current = &dbgwnds[DEBUG_WINDOW_DISASM];
+
 	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
-		dbg->windows[i] = NULL;
-		dbg->windows[i] = (DebuggerWindow*) malloc(sizeof(DebuggerWindow));
-
-		VM_ASSERT(dbg->windows[i] == NULL);
-
-		dbg->windows[i]->initHandler = g_debuggerInits[i];
-		dbg->windows[i]->initHandler(dbg->windows[i]);
+        dbg->windows[i] = &dbgwnds[i];
+        initWindow(dbg, dbg->windows[i]);
 		dbg->windows[i]->updateHandler = g_debuggerUpdaters[i];
 	}
 
@@ -578,12 +515,6 @@ VM_RESULT destroyDebugger(Debugger **m_dbg) {
 	}
 
 	endwin();
-	
-	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
-		if ((*m_dbg)->windows[i] != NULL) {
-			free((*m_dbg)->windows[i]);
-		}
-	}
 
 	free(*m_dbg);
 

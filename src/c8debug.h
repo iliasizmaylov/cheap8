@@ -5,27 +5,6 @@
  * License: DWYW - "Do Whatever You Want"
  * 
  * Functions and data structures for a cheap8 debugger.
- * And I think a little more explanation would be merited.
- * 
- * Here is how debugger and it's interface is structured:
- * +-----------------------------+
- * |struct Debugger = {          |
- * |                             |
- * |  windows[] = {              |
- * |  1-+----------------------+ |              
- * |    |struct DebuggerWindow | |               (initializes the window)                                 
- * |    |   Handler function \ | |          /--> void initHandler(DebuggerWindow*)                        
- * |    |            pointer /-+-----------<
- * |    +----------------------+ |          \--> void updateHandler(Debugger*, DebuggerWindow*, C8core*)
- * |            [ ... ]          |               (processes updates to the window and draws them)
- * |  N-+----------------------+ |
- * |    |struct DebuggerWindow | |  
- * |    |   Handler function \ | |          /--> void initHandler(DebuggerWindow*)
- * |    |            pointer /-+-----------<
- * |    +----------------------+ |          \--> void updateHandler(Debugger*, DebuggerWindow*, C8core*)
- * |  }                          |                                                                      
- * |}                            |
- * +-----------------------------+
  */
 
 #ifndef _C8DEBUG_H_
@@ -51,6 +30,8 @@ enum debuggerColorPairs {
     WINDOW_COLOR_START_NR = 1,
 
     WINDOW_TITLE_COLOR = 1,
+    WINDOW_BORDER_SELECTED_COLOR,
+    WINDOW_TITLE_SELECTED_COLOR,
     WINDOW_MEMORY_END_COLOR,
     WINDOW_MEMORY_OPCODE_COLOR,
     WINDOW_FLAGS_ERROR_COLOR,
@@ -78,12 +59,13 @@ typedef struct _DebuggerColorPair {
 
 // Enum for a more convenient way to identify and refer to debugger TUI windows
 typedef enum {
-	DEBUG_WINDOW_CURRENT_OPCODE=0,  // Window that shows current opcode being executed
-	DEBUG_WINDOW_REGISTERS,         // Window showing state of all registers
+	DEBUG_WINDOW_REGISTERS = 0,         // Window showing state of all registers
 	DEBUG_WINDOW_CUSTOM_FLAGS,      // Window that shows the state of custom flags
 	DEBUG_WINDOW_MEMORY,            // Window that acts as a memory explorer
     DEBUG_WINDOW_DISASM,            // Disassembler window
     DEBUG_WINDOW_VM,
+    DEBUG_WINDOW_PREVIEW,
+    DEBUG_WINDOW_STACK,
 
 	DEBUG_WINDOW_COUNT              // A placeholder that contains a count of all aforementioned windows
 } DebuggerWindows;
@@ -92,46 +74,42 @@ typedef struct _DebuggerWindow DebuggerWindow;
 typedef struct _Debugger Debugger;
 typedef void (*WINDOW_UPDATE)(Debugger*, DebuggerWindow*, const C8core*);
 
-void drawWindowBox(DebuggerWindow *window);
+void drawWindowBox(Debugger *dbg, DebuggerWindow *window);
 
-void updateCurrentOpcode(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateVMdbg(Debugger *dbg, DebuggerWindow *window, const C8core *core);
+void updatePreview(Debugger *dbg, DebuggerWindow *window, const C8core *core);
+void updateStack(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 
 // Holds all update handlers for debugger windows
 static const WINDOW_UPDATE g_debuggerUpdaters[DEBUG_WINDOW_COUNT] = {
-	updateCurrentOpcode,
 	updateRegisters,
 	updateMemory,
 	updateCustomFlags,
     updateDisasm,
-    updateVMdbg
-};
-
-typedef void (*WINDOW_INIT)(DebuggerWindow*);
-
-void initCurrentOpcode(DebuggerWindow *window);
-void initRegisters(DebuggerWindow *window);
-void initMemory(DebuggerWindow *window);
-void initCustomFlags(DebuggerWindow *window);
-void initDisasm(DebuggerWindow *window);
-void initVMdbg(DebuggerWindow *window);
-
-// Holds all init handlers for debugger windows
-static const WINDOW_INIT g_debuggerInits[DEBUG_WINDOW_COUNT] = {
-	initCurrentOpcode,
-	initRegisters,
-	initMemory,
-	initCustomFlags,
-    initDisasm,
-    initVMdbg
+    updateVMdbg,
+    updatePreview,
+    updateStack
 };
 
 void generateWindowPos(DebuggerWindow *dwin);
 void drawBlock(WINDOW *win, int y, int x, int w, int h);
+
+#define WINDOW_FLAG_READONLY    (1 << 0)
+#define WINDOW_FLAG_PERMANENT   (1 << 1)
+#define WINDOW_FLAG_SELECTED    (1 << 2)
+#define WINDOW_FLAG_EDITED      (1 << 3)
+
+typedef enum {
+    WINDOW_LEFT = 0,
+    WINDOW_RIGHT,
+    WINDOW_UP,
+    WINDOW_DOWN,
+    WINDOW_SIDES
+} WindowSides;
 
 // A struct defining all debugger window properties
 typedef struct _DebuggerWindow {
@@ -147,15 +125,39 @@ typedef struct _DebuggerWindow {
 
 	WINDOW *win;        // ncurses window handler
 
+    DebuggerWindow *left;
+    DebuggerWindow *right;
+    DebuggerWindow *up;
+    DebuggerWindow *down;
+    DebuggerWindow *adj[WINDOW_SIDES];
+
+    BYTE flags;
+
     // Pointer to an update function
 	WINDOW_UPDATE updateHandler;
-
-    // Pointer to an init function
-	WINDOW_INIT initHandler;
 } DebuggerWindow;
 
-#define FLAG_STEP_MODE      (1 << 0)
-#define FLAG_STOP_ON_ERROR  (1 << 1)
+static DebuggerWindow dbgwnds[DEBUG_WINDOW_COUNT] = {
+    {.title = "Registers", .literal = 'r', .flags = WINDOW_FLAG_READONLY},
+    {.title = "Memory", .literal = 'm', .flags = 0},
+    {.title = "Custom Flags", .literal = 'f', .flags = WINDOW_FLAG_READONLY},
+    {.title = "Disassembly", .literal = 'd', .flags = 0},
+    {.title = "Cheap-8 Display", .literal = 'v', .flags = 0},
+    {.title = "Sprite Preview", .literal = 'p', .flags = WINDOW_FLAG_READONLY},
+    {.title = "Stack", .literal = 's', .flags = WINDOW_FLAG_READONLY}
+};
+
+static inline DebuggerWindow *findByLiteral(char l) {
+    for (int i = 0; i < DEBUG_WINDOW_COUNT; i++) {
+        if (dbgwnds[i].literal == l)
+            return &dbgwnds[i];
+    }
+
+    return NULL;
+}
+
+#define DEBUGGER_FLAG_STEP_MODE         (1 << 0)
+#define DEBUGGER_FLAG_EDITING           (1 << 1)
 
 // A struct (should be a singleton) that defines the whole debugger context
 typedef struct _Debugger {
@@ -164,10 +166,11 @@ typedef struct _Debugger {
 	BYTE flags;                                     // 8 debugger flags
 
     DebuggerWindow *current;
-    char lastInput;
+    int lastInput;
 } Debugger;
 
 VM_RESULT updateDebugger(Debugger *dbg);
+void initWindow(Debugger *dbg, DebuggerWindow *window);
 VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core);
 VM_RESULT destroyDebugger(Debugger **m_dbg);
 

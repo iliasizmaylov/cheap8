@@ -431,16 +431,14 @@ VM_RESULT runVM(VM *vm) {
 
 	while (runningState == VM_RESULT_SUCCESS) {
 		currentTicks = SDL_GetTicks64();
+        nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
         
-        if (dbgHeld == VM_RESULT_SUCCESS) {
-            nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
+        if (dbgHeld == VM_RESULT_SUCCESS)
             nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_TIMER;
-        } else {
-            nextTicks = currentTicks + CORE_TICKS_PER_CYCLE;
+        else 
             nextTimerTicks = currentTicks + CORE_TICKS_PER_TIMER;
-        }
 
-		if (currentTicks < nextTicks && dbgHeld == VM_RESULT_SUCCESS) {
+		if (currentTicks < nextTicks) {
 			SDL_Delay(nextTicks - currentTicks);
 		}
 

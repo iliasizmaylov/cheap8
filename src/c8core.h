@@ -117,7 +117,7 @@ static const unsigned char fontset[FONTSET_SIZE] = {
 #define CHECK_CUSTOM_FLAG(dest, source)	dest->customFlags & source
 
 // Macro to concatenate to bytes into one word
-#define GET_WORD(byte1, byte2)			0 | (byte1 << 8) | byte2
+#define GET_WORD(byte1, byte2)			(0 | (byte1 << 8) | byte2)
 
 // Macro to get a certain bit from any integer value
 #define GET_BIT(val, bitidx) \

@@ -178,7 +178,7 @@ VM_RESULT disassemble(const C8core *core) {
         } else {
             g_disasmem[i] = malloc(sizeof(Instruction));
             g_disasmem[i]->addr = i;
-            rawToInstruction(GET_WORD(core->memory[i], core->memory[i] + 1), g_disasmem[i]);
+            rawToInstruction(GET_WORD(core->memory[i], core->memory[i + 1]), g_disasmem[i]);
         }
     }
 

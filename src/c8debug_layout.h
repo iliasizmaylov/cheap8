@@ -26,15 +26,15 @@
     (to * SCREEN_CHUNK_LINES - from * SCREEN_CHUNK_LINES)
 
 const char *g_debuggerLayout =
-    ".........."
-    "vvvvvvoooo"
+    ".........p"
+    ".........p"
+    "vvvvvvddds"
+    "vvvvvvddds"
+    "vvvvvvddds"
     "vvvvvvdddr"
     "vvvvvvdddr"
-    "vvvvvvdddr"
-    "vvvvvvdddf"
-    "vvvvvvdddf"
-    "vvvvvvmmmm"
-    "vvvvvvmmmm"
-    "..........";
+    "vvvvvvmmmr"
+    "vvvvvvmmmf"
+    "vvvvvvmmmf";
 
 #endif  /* _C8DEBUG_LAYOUT_H_ */
