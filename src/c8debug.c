@@ -29,14 +29,51 @@ void drawWindowBox(Debugger *dbg, DebuggerWindow *window) {
 	if (dbg->current == window)
         wattroff(window->win, COLOR_PAIR(WINDOW_BORDER_SELECTED_COLOR));
 
-    int tc = dbg->current == window ? 
-            COLOR_PAIR(WINDOW_TITLE_SELECTED_COLOR) : 
-            COLOR_PAIR(WINDOW_TITLE_COLOR);
+    int bc = 0;
+    int tc = 0;
+
+    if (dbg->current == window) {
+        if (dbg->flags & DEBUGGER_FLAG_EDITING) {
+            bc = COLOR_PAIR(WINDOW_TITLE_EDITED_COLOR);
+            tc = COLOR_PAIR(WINDOW_TITLE_EDITED_COLOR);
+        } else {
+            bc = COLOR_PAIR(WINDOW_TITLE_SELECTED_COLOR);
+            tc = COLOR_PAIR(WINDOW_TITLE_SELECTED_COLOR);
+        }
+    } else {
+        bc = COLOR_PAIR(WINDOW_TITLE_COLOR);
+        tc = COLOR_PAIR(WINDOW_TITLE_COLOR);
+    }
+
+    wattron(window->win, bc);
+    box(window->win, 0, 0);
+    wattroff(window->win, bc);
 
     wattron(window->win, tc);
 	mvwprintw(window->win, 0, WINDOW_TITLE_OFFSET, " %s ", window->title);
 	wattroff(window->win, tc);
     wmove(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET);
+}
+
+void drawPopupBox(Debugger *dbg) {
+    if (!dbg->popup)
+        return;
+
+    wattron(dbg->popup_win, COLOR_PAIR(POPUP_BORDER_COLOR));
+    box(dbg->popup_win, 0, 0);
+    wattroff(dbg->popup_win, COLOR_PAIR(POPUP_BORDER_COLOR));
+
+    wattron(dbg->popup_win, COLOR_PAIR(POPUP_TITLE_COLOR));
+	mvwprintw(dbg->popup_win, 0, WINDOW_TITLE_OFFSET, " %s ", dbg->popup->title);
+	wattroff(dbg->popup_win, COLOR_PAIR(POPUP_TITLE_COLOR));
+}
+
+static inline DebuggerWindow *findByLiteral(char l) {
+    for (int i = 0; i < DEBUG_WINDOW_COUNT; i++)
+        if (dbgwnds[i].literal == l)
+            return &dbgwnds[i];
+
+    return NULL;
 }
 
 void generateWindowPos(DebuggerWindow *dwin) {
@@ -110,13 +147,20 @@ void generateWindowPos(DebuggerWindow *dwin) {
     dwin->textLines = dwin->lines - 2;
 }
 
-void drawBlock(WINDOW *win, int y, int x, int w, int h) {
+static inline void drawBlock(WINDOW *win, int y, int x, int w, int h) {
     for (int i = 0; i < h; i++) {
         wmove(win, y + i, x);
         for (int j = 0; j < w; j++) {
             wprintw(win, "%s", "▓");
         }
     }
+}
+
+static inline DebuggerWindow *getadj(DebuggerWindow *cur, BYTE side) {
+    if (side >= WINDOW_SIDES || cur == NULL)
+        return NULL;
+     
+    return cur->adj[side] == NULL ? cur : cur->adj[side];
 }
 
 /* ======================= UPDATE HANDLERS ========================= */
@@ -170,13 +214,22 @@ void updateRegisters(Debugger *dbg, DebuggerWindow *window, const C8core* core) 
  *  Fetches memory from a current position given by core->PC register and displays it
  */
 void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
-	WORD maxColumns = (window->columns - 2) / (WINDOW_MEMORY_COLUMN_OFFSET);
+    __INIT_AUX_DATA(MemoryWindowData) {
+        AUX_DATA->addr_start    = core->PC;
+        AUX_DATA->addr_end      = 0xFFFF;
+        AUX_DATA->max_cols      = 0;
+    }
+
+    if (!(window->flags & WINDOW_FLAG_TOUCHED))
+        AUX_DATA->addr_start = core->PC;
+
+    AUX_DATA->max_cols = (window->columns - 2) / (WINDOW_MEMORY_COLUMN_OFFSET);
 	BYTE memEnd = 0;
 
 	for (WORD i = 0; i < window->textLines; i++) {
-		for (WORD j = i * maxColumns, k = 0; j < (i + 1) * maxColumns; j++, k++) {
-			QWORD nextMem = core->PC + j - 1;
-			if (j == i * maxColumns) {
+		for (WORD j = i * AUX_DATA->max_cols, k = 0; j < (i + 1) * AUX_DATA->max_cols; j++, k++) {
+			QWORD nextMem = AUX_DATA->addr_start + j - 1;
+			if (j == i * AUX_DATA->max_cols) {
 				wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
 				mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, 
                             WINDOW_CONTENT_X_OFFSET + (k * WINDOW_MEMORY_COLUMN_OFFSET), 
@@ -184,7 +237,7 @@ void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
 				wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
 			} else {
 				if (nextMem <= MEMORY_RANGE_PROGRAM_MAX) {
-					if (j >= (i * maxColumns) + 1 && j <= (i * maxColumns) + 2 && i == 0) {
+					if (nextMem == core->PC || nextMem == core->PC + 1) {
 						wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
 					}
 					mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, 
@@ -217,9 +270,7 @@ void updateMemory(Debugger *dbg, DebuggerWindow *window, const C8core* core) {
  *  Pointer to Debugger struct representing a debugger context
  * @param window
  *  Pointer to DebuggerWindow struct representing a custom flags state window
- * @param core
- *  Pointer to C8core struct representing a chip-8 system core state
- * @description:
+ * @p
  *  Update handler for a custom flag state window
  *  Fetches custom flags from core and displays them
  */
@@ -273,20 +324,38 @@ void updateCustomFlags(Debugger *dbg, DebuggerWindow *window, const C8core *core
  *  Update handler for a disassembler window
  */
 void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) { 
+    __INIT_AUX_DATA(DisasmWindowData) {
+        AUX_DATA->addr_start = core->PC;
+        AUX_DATA->addr_end = 0;
+    }
+
+    if (!(window->flags & WINDOW_FLAG_TOUCHED))
+        AUX_DATA->addr_start = core->PC;
+
     const char *fmt_current = "=>0x%03X  %-20s# %s";
     const char *fmt_not_current = "  0x%03X  %-20s# %s";
     const char *fmt_selected = fmt_current;
 
+    const Instruction *beingrun = getInstructionAt(core->PC);
+
     for (int i = 0; i < window->textLines; i++) {
-        const Instruction *current = getInstructionAt(core->PC + i * 2);
+        const Instruction *current = getInstructionAt(AUX_DATA->addr_start + i * 2);
 
         if (current->op != NULL) {
-            fmt_selected = i == 0 ? fmt_current : fmt_not_current;
+            if (current->addr == beingrun->addr) {
+                fmt_selected = fmt_current;
+                wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
+            } else {
+                fmt_selected = fmt_not_current;
+            }
             mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, 
                             fmt_selected, current->addr, current->asmstr, current->readable); 
         } else {
+            wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
             mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "N/A");
         }
+        wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_OPCODE_COLOR));
+        wattroff(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
     }
 }
 
@@ -338,13 +407,240 @@ void updateStack(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
     }
 }
 
+/* ====================== DEBUGGER MENU HANDLERS =================== */
+
+/* Global actions handlers */
+
+void gNavHandler(Debugger *dbg) {
+    switch(dbg->lastInput) {
+    case KEY_UP:
+        dbg->current = getadj(dbg->current, WINDOW_UP);
+        break;
+    case KEY_DOWN:
+        dbg->current = getadj(dbg->current, WINDOW_DOWN);
+        break;
+    case KEY_LEFT:
+        dbg->current = getadj(dbg->current, WINDOW_LEFT);
+        break;
+    case KEY_RIGHT:
+        dbg->current = getadj(dbg->current, WINDOW_RIGHT);
+        break;
+     }
+}
+
+void gHandler_back(Debugger *dbg) {
+    dbg->flags &= ~DEBUGGER_FLAG_EDITING;
+}
+
+void gHandler_quit(Debugger *dbg) {
+    dbg->flags |= DEBUGGER_FLAG_EXIT;
+}
+
+void gHandler_select(Debugger *dbg) {
+    if (!(dbg->current->flags & (WINDOW_FLAG_READONLY | WINDOW_FLAG_PERMANENT)))
+        dbg->flags |= DEBUGGER_FLAG_EDITING;
+}
+
+void gHandler_stepin(Debugger *dbg) {
+    dbg->flags |= DEBUGGER_FLAG_NEXT_STEP;
+}
+
+void gHandler_pauseresume(Debugger *dbg) {
+    dbg->flags ^= DEBUGGER_FLAG_STEP_MODE;
+}
+
+void gHandler_loadrom(Debugger *dbg) {
+    return;
+}
+
+/* Popup-wise actions handlers */
+
+void pHandler_cancel(Debugger *dbg) {
+    dbg->flags &= ~DEBUGGER_FLAG_POPUP;
+    gPopupExit_ALL(dbg, dbg->popup);
+    dbg->popup = NULL;
+}
+
+void pHandler_save(Debugger *dbg) {
+    dbg->flags &= ~DEBUGGER_FLAG_POPUP;
+    gPopupExit_ALL(dbg, dbg->popup);
+    dbg->popup = NULL;
+}
+
+/* Window-wise navigation handlers */
+
+void wNavHandler_memory(Debugger *dbg) {
+    MemoryWindowData *wdata = (MemoryWindowData*)dbg->current->auxdata;
+    WORD ystep = wdata->max_cols;
+    WORD xstep = 1;
+    BYTE isTouched = 0;
+
+    switch(dbg->lastInput) {
+    case KEY_UP:
+        wdata->addr_start -= ystep;
+        isTouched = 1; break;
+    case KEY_DOWN:
+        wdata->addr_start += ystep;
+        isTouched = 1; break;
+    case KEY_LEFT:
+        wdata->addr_start -= xstep;
+        isTouched = 1; break;
+    case KEY_RIGHT:
+        wdata->addr_start += xstep;
+        isTouched = 1; break;
+    }
+
+    if (isTouched)
+        dbg->current->flags |= WINDOW_FLAG_TOUCHED;
+}
+
+void wNavHandler_disasm(Debugger *dbg) {
+    DisasmWindowData *wdata = (DisasmWindowData*)dbg->current->auxdata;
+    BYTE isTouched = 0;
+
+    switch(dbg->lastInput) {
+    case KEY_UP:
+        wdata->addr_start -= OPCODE_SIZE;
+        isTouched = 1; break;
+    case KEY_DOWN:
+        wdata->addr_start += OPCODE_SIZE;
+        isTouched = 1; break;
+    }
+
+    if (isTouched)
+        dbg->current->flags |= WINDOW_FLAG_TOUCHED;
+}
+
+/* Window-wise actions handlers */
+
+void wHandler_mem_goto(Debugger *dbg) {
+    dbg->flags |= DEBUGGER_FLAG_POPUP;     
+    dbg->popup = &g_popups[DEBUGGER_POPUP_MEM_GOTO];
+}
+
+/* ================== DEBUGGER POPUP DRAW SAVE EXIT ================ */
+
+static inline void destroyForm(DebuggerPopup *popup) {
+    unpost_form(popup->form);
+    free_form(popup->form);
+    for (BYTE i = 0; i < popup->field_count; i++)
+        free_field(popup->fields[i]);
+
+    popup->form = NULL;
+    popup->isDrawn = 0;
+}
+
+void gPopupExit_ALL(Debugger *dbg, DebuggerPopup *popup) {
+    if (popup->form)
+        destroyForm(popup);
+}
+
+void gPopupKeys_ALL(Debugger *dbg, DebuggerPopup *popup) {
+    switch(dbg->lastInput) {
+    case KEY_DOWN:
+        form_driver(dbg->popup->form, REQ_NEXT_FIELD);
+        form_driver(dbg->popup->form, REQ_END_LINE);
+        break;
+    case KEY_UP:
+        form_driver(dbg->popup->form, REQ_PREV_FIELD);
+        form_driver(dbg->popup->form, REQ_END_LINE);
+        break;
+    default:
+        form_driver(dbg->popup->form, dbg->lastInput);
+        break;
+    }
+}
+
+void wPopupDraw_findmem(Debugger *dbg, DebuggerPopup *popup) {
+    for (int i = 0; i < DEBUGGER_POPUP_MAX_FIELDS; i++)
+        popup->fields[i] = NULL;
+
+    popup->fields[0] = new_field(2, 10, 2, 10, 0, 0);    
+    set_field_opts(popup->fields[0], O_VISIBLE | O_ACTIVE);
+    set_field_back(popup->fields[0], A_UNDERLINE);
+    field_opts_off(popup->fields[0], O_AUTOSKIP);
+
+    popup->fields[1] = new_field(2, 10, 4, 10, 0, 0);    
+    set_field_opts(popup->fields[1], O_VISIBLE | O_ACTIVE);
+    set_field_back(popup->fields[1], A_UNDERLINE);
+    field_opts_off(popup->fields[1], O_AUTOSKIP);
+
+    popup->fields[2] = NULL;
+
+    set_form_win(popup->form, dbg->popup_win);
+    set_form_sub(popup->form, dbg->popup_sub);
+    popup->form = new_form(popup->fields);
+    post_form(popup->form);
+
+    mvwprintw(dbg->popup_win, 2, 2, "TestField: ");
+}
+
+void wPopupSave_findmem(Debugger *dbg, DebuggerPopup *popup) {
+    if (popup->form)
+        destroyForm(popup);
+}
+
 /* ==================== DEBUGGER CONTEXT FUNCTIONS ================= */
 
-static inline DebuggerWindow *getadj(DebuggerWindow *cur, BYTE side) {
-    if (side >= WINDOW_SIDES || cur == NULL)
-        return NULL;
-     
-    return cur->adj[side] == NULL ? cur : cur->adj[side];
+void initMenu(Debugger *dbg) {
+    dbg->menuwin = newwin(DEBUGGER_MENU_COLS, DEBUGGER_MENU_ROWS,
+                    DEBUGGER_MENU_Y_POS, DEBUGGER_MENU_X_POS);
+    wbkgd(dbg->menuwin, COLOR_PAIR(MENU_BAR_COLOR));
+    wrefresh(dbg->menuwin);
+}
+
+static inline void printOpts(WINDOW *win, const DebuggerMenuOption *opts, BYTE c) {
+    for (BYTE i = 0; i < c; i++)
+        wprintw(win, " [%s] %s ", opts[i].keystr, opts[i].name);
+}
+
+void updateMenu(Debugger *dbg, DebuggerWindow *dwin) {
+    werase(dbg->menuwin);
+    wbkgd(dbg->menuwin, COLOR_PAIR(MENU_BAR_COLOR));
+
+    mvwprintw(dbg->menuwin, 0, 1, "| %-15s | ", dwin->menu->name);
+
+    if (dbg->flags & DEBUGGER_FLAG_POPUP) {
+        printOpts(dbg->menuwin, g_popup_opts, POPUP_OPTION_COUNT);
+    } else {
+        if (dwin->menu->global_opts != NULL) {
+            printOpts(dbg->menuwin, dwin->menu->global_opts, GLOBAL_OPTION_COUNT);
+        }
+
+        if (dwin->menu->opts != NULL && dbg->flags & DEBUGGER_FLAG_EDITING) {
+            printOpts(dbg->menuwin, dwin->menu->opts, dwin->menu->optcount);
+        }
+    }
+
+    wrefresh(dbg->menuwin);
+}
+
+static inline void callHandler(Debugger *dbg) {
+    if (dbg->popup) {
+        for (BYTE i = 0; i < POPUP_OPTION_COUNT; i++) {
+            if (dbg->lastInput == g_popup_opts[i].key) {
+                g_popup_opts[i].handler(dbg);
+                return;
+            }
+        }
+        gPopupKeys_ALL(dbg, dbg->popup);
+    } else {
+        for (BYTE i = 0; i < GLOBAL_OPTION_COUNT; i++) {
+            if (dbg->lastInput == dbg->current->menu->global_opts[i].key) {
+                dbg->current->menu->global_opts[i].handler(dbg);
+                return;
+            }
+        }
+
+        if (dbg->flags & DEBUGGER_FLAG_EDITING) {
+            for (BYTE i = 0; i < dbg->current->menu->optcount; i++) {
+                if (dbg->lastInput == dbg->current->menu->opts[i].key) {
+                    dbg->current->menu->opts[i].handler(dbg);
+                    return;
+                }
+            }
+        }
+    }
 }
 
 /** updateDebugger
@@ -356,39 +652,59 @@ static inline DebuggerWindow *getadj(DebuggerWindow *cur, BYTE side) {
  *  therefore updating the whole debugger context
  */
 VM_RESULT updateDebugger(Debugger *dbg) {
-	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
-        if (dbg->windows[i]->win != NULL) {
-            werase(dbg->windows[i]->win);
-            dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
-            drawWindowBox(dbg, dbg->windows[i]);
-            wrefresh(dbg->windows[i]->win);
+    if (!(dbg->flags & DEBUGGER_FLAG_POPUP)) {
+        for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
+            if (dbg->windows[i]->win != NULL) {
+                werase(dbg->windows[i]->win);
+                dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
+                drawWindowBox(dbg, dbg->windows[i]);
+                wrefresh(dbg->windows[i]->win);
+            }
         }
-	}
+    }
+
+    updateMenu(dbg, dbg->current);
 
     dbg->lastInput = getch();
     VM_RESULT ret = VM_RESULT_SUCCESS;
+    
+    if (!(dbg->flags & DEBUGGER_FLAG_EDITING))
+        gNavHandler(dbg);
+    else if (dbg->current->menu->navhandler != NULL) 
+        dbg->current->menu->navhandler(dbg);
 
-    switch(dbg->lastInput) {
-        case KEY_UP:
-            dbg->current = getadj(dbg->current, WINDOW_UP);
-            break;
-        case KEY_DOWN:
-            dbg->current = getadj(dbg->current, WINDOW_DOWN);
-            break;
-        case KEY_LEFT:
-            dbg->current = getadj(dbg->current, WINDOW_LEFT);
-            break;
-        case KEY_RIGHT:
-            dbg->current = getadj(dbg->current, WINDOW_RIGHT);
-            break;
-    }
+    callHandler(dbg);
+
+    if (dbg->flags & DEBUGGER_FLAG_EXIT)
+        return VM_RESULT_EVENT_QUIT;
 
     if (dbg->flags & DEBUGGER_FLAG_STEP_MODE)
         ret = VM_RESULT_DBG;
 
-    if (dbg->lastInput == ' ')
+    if (ret == VM_RESULT_DBG && dbg->flags & DEBUGGER_FLAG_NEXT_STEP) {
         ret = VM_RESULT_SUCCESS;
+        dbg->flags ^= DEBUGGER_FLAG_NEXT_STEP;
+    }
 
+    if (dbg->flags & DEBUGGER_FLAG_POPUP) {
+        if (!dbg->popup->isDrawn) {
+            top_panel(dbg->popup_pan);
+            show_panel(dbg->popup_pan);
+            werase(dbg->popup_sub);
+            werase(dbg->popup_win);
+            dbg->popup->hdraw(dbg, dbg->popup);
+            dbg->popup->isDrawn = 1;
+            drawPopupBox(dbg);
+        }
+        wrefresh(dbg->popup_win);
+        wrefresh(dbg->popup_sub);
+    } else {
+        werase(dbg->popup_sub);
+        werase(dbg->popup_win);
+        hide_panel(dbg->popup_pan);
+    }
+
+    update_panels();
 	doupdate();
 
 	return ret;
@@ -397,6 +713,8 @@ VM_RESULT updateDebugger(Debugger *dbg) {
 void initWindow(Debugger *dbg, DebuggerWindow *window) {
     generateWindowPos(window);
     
+    window->auxdata = NULL;
+
     window->adj[WINDOW_LEFT] = window->left;
     window->adj[WINDOW_RIGHT] = window->right;
     window->adj[WINDOW_UP] = window->up;
@@ -408,6 +726,8 @@ void initWindow(Debugger *dbg, DebuggerWindow *window) {
     }
 
     window->win = newwin(window->lines, window->columns, window->yPos, window->xPos);
+    window->pan = new_panel(window->win);
+    bottom_panel(window->pan);
 
     drawWindowBox(dbg, window);
 }
@@ -422,8 +742,14 @@ static const DebuggerColorPair dbgColorPairs[WINDOW_COLOR_END_NR] = {
     /* WINDOW_BORDER_SELECTED_COLOR */ {
         .fc = COLOR_YELLOW, .bc = COLOR_BLACK
     },
+    /* WINDOW_BORDER_EDITED_COLOR */ {
+        .fc = COLOR_BLUE, .bc = COLOR_BLACK
+    },
     /* WINDOW_TITLE_SELECTED_COLOR */ {
         .fc = COLOR_BLACK, .bc = COLOR_YELLOW
+    },
+    /* WINDOW_TITLE_EDITED_COLOR */ {
+        .fc = COLOR_WHITE, .bc = COLOR_BLUE
     },
     /* WINDOW_MEMORY_END_COLOR */ {
         .fc = COLOR_BLACK, .bc = COLOR_WHITE
@@ -436,6 +762,15 @@ static const DebuggerColorPair dbgColorPairs[WINDOW_COLOR_END_NR] = {
     },
     /* WINDOW_FLAGS_NORMAL_COLOR */ {
         .fc = COLOR_GREEN, .bc = COLOR_BLACK
+    },
+    /* MENU_BAR_COLOR */ {
+        .fc = COLOR_WHITE, .bc = COLOR_BLUE
+    },
+    /* POPUP_BORDER_COLOR */ {
+        .fc = COLOR_BLACK, .bc = COLOR_BLUE
+    },
+    /* POPUP_TITLE_COLOR */ {
+        .fc = COLOR_BLACK, .bc = COLOR_WHITE
     }
 };
 
@@ -477,18 +812,31 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
 	noecho();
 	curs_set(0);
 
-    for (BYTE i = WINDOW_COLOR_START_NR; i < WINDOW_COLOR_END_NR; i++) {
+    for (BYTE i = WINDOW_COLOR_START_NR; i < WINDOW_COLOR_END_NR; i++)
         init_pair(i, dbgColorPairs[i].fc, dbgColorPairs[i].bc);
-    }
 
     dbg->current = &dbgwnds[DEBUG_WINDOW_DISASM];
 
+    initMenu(dbg);
 	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
         dbg->windows[i] = &dbgwnds[i];
         initWindow(dbg, dbg->windows[i]);
 		dbg->windows[i]->updateHandler = g_debuggerUpdaters[i];
+        dbg->windows[i]->menu = &g_menus[i];
 	}
 
+    dbg->popup_win = newwin(DEBUGGER_POPUP_LINES, DEBUGGER_POPUP_COLS, 
+                DEBUGGER_POPUP_Y_POS, DEBUGGER_POPUP_X_POS);
+    dbg->popup_sub = derwin(dbg->popup_win, DEBUGGER_POPUP_SUB_L, DEBUGGER_POPUP_SUB_C,
+                DEBUGGER_POPUP_SUB_Y, DEBUGGER_POPUP_SUB_X);
+    dbg->popup_pan = new_panel(dbg->popup_win);
+    top_panel(dbg->popup_pan);
+    dbg->popup = NULL;
+
+    for (BYTE i = 0; i < NR_DEBUGGER_POPUPS; i++)
+        g_popups[i].isDrawn = 0;
+
+    update_panels();
 	doupdate();
 
 	return VM_RESULT_SUCCESS;
@@ -508,9 +856,16 @@ VM_RESULT destroyDebugger(Debugger **m_dbg) {
 
     destroyDisassembler();
 
+    del_panel(dbg->popup_pan);
+    delwin(dbg->popup_win);
+    delwin(dbg->popup_sub);
+    delwin(dbg->menuwin);
 	for (BYTE i = 0; i < DEBUG_WINDOW_COUNT; i++) {
 		if (dbg->windows[i]->win != NULL) {
+            del_panel(dbg->windows[i]->pan);
 			delwin(dbg->windows[i]->win);
+            if (dbg->windows[i]->auxdata != NULL)
+                free(dbg->windows[i]->auxdata);
 		}
 	}
 

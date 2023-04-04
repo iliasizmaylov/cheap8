@@ -435,8 +435,10 @@ VM_RESULT runVM(VM *vm) {
         
         if (dbgHeld == VM_RESULT_SUCCESS)
             nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_TIMER;
-        else 
+        else { 
             nextTimerTicks = currentTicks + CORE_TICKS_PER_TIMER;
+            nextTicks = currentTicks + DEBUGGER_PAUSE_TICKS; 
+        }
 
 		if (currentTicks < nextTicks) {
 			SDL_Delay(nextTicks - currentTicks);
@@ -457,6 +459,8 @@ VM_RESULT runVM(VM *vm) {
 
 		if (vm->dbg != NULL && (vm->flags & VM_FLAG_DEBUGGER)) {
 			dbgHeld = updateDebugger(vm->dbg);
+            if (dbgHeld == VM_RESULT_EVENT_QUIT)
+                return VM_RESULT_EVENT_QUIT;
         }
 
         if (dbgHeld == VM_RESULT_SUCCESS) {

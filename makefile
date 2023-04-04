@@ -18,7 +18,7 @@ CFLAGS		= -I -Wall -Werror
 
 # Linker
 LINKER 		= gcc
-LFLAGS 		= -lsdl2 -lm -lpanel -lncurses
+LFLAGS 		= -lsdl2 -lm -lpanel -lform -lncurses
 
 # Sources, objects and binaries directories
 SRCDIR 		= src
