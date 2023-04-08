@@ -434,11 +434,9 @@ VM_RESULT runVM(VM *vm) {
         nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
         
         if (dbgHeld == VM_RESULT_SUCCESS)
-            nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_TIMER;
-        else { 
-            nextTimerTicks = currentTicks + CORE_TICKS_PER_TIMER;
-            nextTicks = currentTicks + DEBUGGER_PAUSE_TICKS; 
-        }
+            nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_CYCLE;
+        else
+            nextTimerTicks = currentTicks + CORE_TICKS_PER_CYCLE;
 
 		if (currentTicks < nextTicks) {
 			SDL_Delay(nextTicks - currentTicks);

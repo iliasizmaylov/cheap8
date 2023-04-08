@@ -43,7 +43,7 @@
 
 // Number of ticks per cycle and formula to get ticks per timer hit
 // given CORE_TICKS_PER_CYCLE
-#define CORE_TICKS_PER_CYCLE		20
+#define CORE_TICKS_PER_CYCLE		10
 #define CORE_TICKS_PER_TIMER		CORE_TICKS_PER_CYCLE * (CPU_INSTRUCTIONS_PER_SECOND / TIMER_DECREASE_FREQUENCY)
 
 // Enum to easily access and identifiy register
@@ -153,6 +153,8 @@ typedef struct _C8core {
 	BYTE customFlags;						// Some custom flags that might come in handy (idk)
 
 	Uint64 prevCycleTicks;					// Ticks (milliseconds) since start til previous cycle
+
+    BYTE instrToTimer;
 	Uint64 prevTimerTicks;					// Ticks (milliseconds) since last timer decrease
 } C8core;
 

@@ -10,8 +10,6 @@
 #include "opcodes.h"
 
 const Opcode OPCODES[OPCODE_COUNT] = {
-	{0xF000, 0x0000, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_CALL_MCR, 
-            "nop", "Calls machine code routine NNN"},
 	{0xFFFF, 0x00E0, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_CLEAR_SCREEN, 
             "clr", "Clear screen"},
 	{0xFFFF, 0x00EE, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_RETURN, 
@@ -79,7 +77,9 @@ const Opcode OPCODES[OPCODE_COUNT] = {
 	{0xF0FF, 0xF055, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_DUMP_REGS, 
             "save", "Stores V0 to VX (including VX) in memory starting at address I"},
 	{0xF0FF, 0xF065, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_LOAD_REGS, 
-            "load", "Loads V0 to VX from memory starting from address I"}
+            "load", "Loads V0 to VX from memory starting from address I"},
+	{0xFFFF, 0x0000, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_CALL_MCR, 
+            "nop", "Calls machine code routine NNN"}
 };
 
 // ========================================================================================================
@@ -141,8 +141,8 @@ void handle_OP_CLEAR_SCREEN(C8core *core, BYTE xParam, BYTE yParam, WORD nParam)
 
 void handle_OP_RETURN(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	if (core->SP > 0) {
-		core->PC = core->stack[core->SP];
 		core->SP -= 1;
+		core->PC = core->stack[core->SP];
 	} else {
 		SET_CUSTOM_FLAG(core, CUSTOM_FLAG_BAD_SP);
 	}

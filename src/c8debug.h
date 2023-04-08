@@ -44,6 +44,8 @@ enum debuggerColorPairs {
     WINDOW_MEMORY_OPCODE_COLOR,
     WINDOW_FLAGS_ERROR_COLOR,
     WINDOW_FLAGS_NORMAL_COLOR,
+    WINDOW_STATUS_PAUSED_COLOR,
+    WINDOW_STATUS_RUNNING_COLOR,
     MENU_BAR_COLOR,
     POPUP_BORDER_COLOR,
     POPUP_TITLE_COLOR,
@@ -77,6 +79,7 @@ typedef enum {
     DEBUG_WINDOW_VM,
     DEBUG_WINDOW_PREVIEW,
     DEBUG_WINDOW_STACK,
+    DEBUG_WINDOW_CURRENT_STATE,
 
 	DEBUG_WINDOW_COUNT              // A placeholder that contains a count of all aforementioned windows
 } DebuggerWindows;
@@ -99,6 +102,7 @@ void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateVMdbg(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updatePreview(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateStack(Debugger *dbg, DebuggerWindow *window, const C8core *core);
+void updateCurrentState(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 
 // Holds all update handlers for debugger windows
 static const WINDOW_UPDATE g_debuggerUpdaters[DEBUG_WINDOW_COUNT] = {
@@ -108,7 +112,8 @@ static const WINDOW_UPDATE g_debuggerUpdaters[DEBUG_WINDOW_COUNT] = {
     updateDisasm,
     updateVMdbg,
     updatePreview,
-    updateStack
+    updateStack,
+    updateCurrentState
 };
 
 void generateWindowPos(DebuggerWindow *dwin);
@@ -126,7 +131,6 @@ void gHandler_back(Debugger *dbg);
 void gHandler_select(Debugger *dbg);
 void gHandler_stepin(Debugger *dbg);
 void gHandler_pauseresume(Debugger *dbg);
-void gHandler_loadrom(Debugger *dbg);
 
 void pHandler_cancel(Debugger *dbg);
 void pHandler_save(Debugger *dbg);
@@ -135,26 +139,31 @@ void wNavHandler_memory(Debugger *dbg);
 void wNavHandler_disasm(Debugger *dbg);
 
 void wHandler_mem_goto(Debugger *dbg);
+void wHandler_dis_goto(Debugger *dbg);
 
-#define GLOBAL_OPTION_COUNT     6
+#define GLOBAL_OPTION_COUNT     5
 static const DebuggerMenuOption g_opts[GLOBAL_OPTION_COUNT] = {
     {.name = "Quit", .key = 'q', .keystr = "Q", .handler = gHandler_quit},
     {.name = "Back", .key = 27, .keystr = "ESC", .handler = gHandler_back},
-    {.name = "Select", .key = 's', .keystr = "ENTER", .handler = gHandler_select},
+    {.name = "Select", .key = KEY_ENTER, .keystr = "ENTER", .handler = gHandler_select},
     {.name = "Step-In", .key = ' ', .keystr = "SPACE", .handler = gHandler_stepin},
-    {.name = "Pause/Resume", .key = 'p', .keystr = "P", .handler = gHandler_pauseresume},
-    {.name = "Load ROM", .key = 'l', .keystr = "L", .handler = gHandler_loadrom},
+    {.name = "Pause/Resume", .key = 'p', .keystr = "P", .handler = gHandler_pauseresume}
 };
 
 #define POPUP_OPTION_COUNT      2
 static const DebuggerMenuOption g_popup_opts[POPUP_OPTION_COUNT] = {
     {.name = "Cancel", .key = 27, .keystr = "ESC", .handler = pHandler_cancel},
-    {.name = "OK", .key = 's', .keystr = "ENTER", .handler = pHandler_save}
+    {.name = "OK", .key = KEY_ENTER, .keystr = "ENTER", .handler = pHandler_save}
 };
 
 #define WINDOW_MEMORY_OPTION_COUNT  1
 static const DebuggerMenuOption w_mem_opts[WINDOW_MEMORY_OPTION_COUNT] = {
     {.name = "Goto", .key = 'g', .keystr = "G", .handler = wHandler_mem_goto}
+};
+
+#define WINDOW_DISASM_OPTION_COUNT  1
+static const DebuggerMenuOption w_dis_opts[WINDOW_DISASM_OPTION_COUNT] = {
+    {.name = "Goto", .key = 'g', .keystr = "G", .handler = wHandler_dis_goto}
 };
 
 typedef struct _DebuggerMenu {
@@ -180,7 +189,8 @@ static const DebuggerMenu g_menus[DEBUG_WINDOW_COUNT] = {
         .navhandler = NULL 
     },
     /* DEBUG_WINDOW_DISASM */ {
-        .name = "Disassembly", .global_opts = g_opts, .opts = NULL, .optcount = 0,
+        .name = "Disassembly", .global_opts = g_opts,
+        .opts = w_dis_opts, .optcount = WINDOW_DISASM_OPTION_COUNT,
         .navhandler = wNavHandler_disasm
     },
     /* DEBUG_WINDOW_VM */ {
@@ -193,6 +203,10 @@ static const DebuggerMenu g_menus[DEBUG_WINDOW_COUNT] = {
     },
     /* DEBUG_WINDOW_STACK */ {
         .name = "Stack", .global_opts = g_opts, .opts = NULL, .optcount = 0,
+        .navhandler = NULL
+    },
+    /* DEBUG_WINDOW_CURRENT_STATE */ {
+        .name = "Current State", .global_opts = g_opts, .opts = NULL, .optcount = 0,
         .navhandler = NULL
     }
 };
@@ -249,7 +263,8 @@ static DebuggerWindow dbgwnds[DEBUG_WINDOW_COUNT] = {
     {.title = "Disassembly", .literal = 'd', .flags = 0},
     {.title = "Cheap-8 Display", .literal = 'v', .flags = 0},
     {.title = "Sprite Preview", .literal = 'p', .flags = WINDOW_FLAG_READONLY},
-    {.title = "Stack", .literal = 's', .flags = WINDOW_FLAG_READONLY}
+    {.title = "Stack", .literal = 's', .flags = WINDOW_FLAG_READONLY},
+    {.title = "Current State", .literal = 'c', .flags = WINDOW_FLAG_READONLY}
 };
 
 typedef struct _MemoryWindowData {
@@ -263,12 +278,12 @@ typedef struct _DisasmWindowData {
     WORD addr_end;
 } DisasmWindowData;
 
-#define DEBUGGER_POPUP_MAX_FIELDS   3
+#define DEBUGGER_POPUP_MAX_FIELDS   4
 typedef struct _DebuggerPopup {
     const char *title;
 
     FORM *form;
-    FIELD *fields[DEBUGGER_POPUP_MAX_FIELDS];
+    FIELD *fields[DEBUGGER_POPUP_MAX_FIELDS + 1];
     const BYTE field_count;
     BYTE isDrawn;
 
@@ -290,24 +305,35 @@ void wPopupSave_findop(Debugger *dbg, DebuggerPopup *popup);
 
 typedef enum {
     DEBUGGER_POPUP_MEM_GOTO = 0,
-    
+    DEBUGGER_POPUP_DIS_GOTO,
+
     NR_DEBUGGER_POPUPS
 } DebuggerPopupType;
 
-#define DEBUGGER_POPUP_X_POS    (S_COLS / 6)
-#define DEBUGGER_POPUP_Y_POS    (S_LINES / 6)
-#define DEBUGGER_POPUP_LINES    (S_LINES / 6) * 2
-#define DEBUGGER_POPUP_COLS     (S_COLS / 6) * 2
+#define DEBUGGER_POPUP_Y_CHUNK  (S_LINES / 6)
+#define DEBUGGER_POPUP_X_CHUNK  (S_COLS / 6)
+#define DEBUGGER_POPUP_X_POS    DEBUGGER_POPUP_X_CHUNK
+#define DEBUGGER_POPUP_Y_POS    DEBUGGER_POPUP_Y_CHUNK
+#define DEBUGGER_POPUP_LINES    (DEBUGGER_POPUP_MAX_FIELDS * 4)
+#define DEBUGGER_POPUP_COLS     (DEBUGGER_POPUP_X_CHUNK * 2)
 
-#define DEBUGGER_POPUP_SUB_X    (20)
-#define DEBUGGER_POPUP_SUB_Y    (1)
+#define DEBUGGER_POPUP_SUB_X    10
+#define DEBUGGER_POPUP_SUB_Y    0
 #define DEBUGGER_POPUP_SUB_L    DEBUGGER_POPUP_LINES
 #define DEBUGGER_POPUP_SUB_C    (DEBUGGER_POPUP_COLS - DEBUGGER_POPUP_SUB_X)
+
+#define POPUP_SUB_X_OFFSET      10
+#define POPUP_SUB_Y_OFFSET      2
+#define POPUP_SUB_X_LENGTH      (DEBUGGER_POPUP_SUB_C - 12)
 
 static DebuggerPopup g_popups[NR_DEBUGGER_POPUPS] = {
     /* DEBUGGER_POPUP_MEM_GOTO */ {
         .title = "Go to Memory Address", .hdraw = wPopupDraw_findmem, 
         .hsave = wPopupSave_findmem, .field_count = 1
+    },
+    /* DEBUGGER_POPUP_DIS_GOTO */ {
+        .title = "Go to Instruction at Address", .hdraw = wPopupDraw_findop,
+        .hsave = wPopupSave_findop, .field_count = 1
     }
 };
 
@@ -346,6 +372,7 @@ typedef struct _Debugger {
     WINDOW *popup_win;
     WINDOW *popup_sub;
     PANEL *popup_pan;
+    PANEL *popup_sub_pan;
 } Debugger;
 
 void initMenu(Debugger *dbg);

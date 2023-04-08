@@ -27,6 +27,7 @@
  * Z X C V
  */
 extern const BYTE KEYPAD_MAP[KEYPAD_KEY_COUNT];
+extern const char *g_keypadReadable;
 
 WORD getKeyBitmask(SDL_Scancode scancode);
 

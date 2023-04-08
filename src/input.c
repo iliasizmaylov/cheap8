@@ -28,6 +28,8 @@ const BYTE KEYPAD_MAP[KEYPAD_KEY_COUNT] = {
 	SDL_SCANCODE_V
 };
 
+const char *g_keypadReadable = "123QWEASDZXC4RFV";
+
 // Convert raw input handled by SDL2 library to a bit that is set corresponding
 // to a key on a chip-8 keypad which is:
 // 1 2 3 4

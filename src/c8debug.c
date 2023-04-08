@@ -163,6 +163,19 @@ static inline DebuggerWindow *getadj(DebuggerWindow *cur, BYTE side) {
     return cur->adj[side] == NULL ? cur : cur->adj[side];
 }
 
+
+static const char *rot_chars = "//-\\\\|";
+static const char *cur_rot_char = NULL;
+
+static void printRotatingThingy(WINDOW *win) {
+    if (!cur_rot_char)
+        cur_rot_char = rot_chars;
+    wprintw(win, "%c", (char)*cur_rot_char);
+    cur_rot_char++;
+    if (!(char)*cur_rot_char)
+        cur_rot_char = rot_chars;
+}
+
 /* ======================= UPDATE HANDLERS ========================= */
 
 /** updateRegisters
@@ -332,8 +345,8 @@ void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
     if (!(window->flags & WINDOW_FLAG_TOUCHED))
         AUX_DATA->addr_start = core->PC;
 
-    const char *fmt_current = "=>0x%03X  %-20s# %s";
-    const char *fmt_not_current = "  0x%03X  %-20s# %s";
+    const char *fmt_current = "=>0x%03X [0x%04X]  %-20s# %s";
+    const char *fmt_not_current = "  0x%03X [0x%04X]  %-20s# %s";
     const char *fmt_selected = fmt_current;
 
     const Instruction *beingrun = getInstructionAt(core->PC);
@@ -349,7 +362,7 @@ void updateDisasm(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
                 fmt_selected = fmt_not_current;
             }
             mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, 
-                            fmt_selected, current->addr, current->asmstr, current->readable); 
+                            fmt_selected, current->addr, current->raw, current->asmstr, current->readable); 
         } else {
             wattron(window->win, COLOR_PAIR(WINDOW_MEMORY_END_COLOR));
             mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + i, WINDOW_CONTENT_X_OFFSET, "N/A");
@@ -407,6 +420,35 @@ void updateStack(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
     }
 }
 
+void updateCurrentState(Debugger *dbg, DebuggerWindow *window, const C8core *core) {
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET, WINDOW_CONTENT_X_OFFSET, "Status: ");
+    if (dbg->flags & DEBUGGER_FLAG_STEP_MODE) {
+        wattron(window->win, COLOR_PAIR(WINDOW_STATUS_PAUSED_COLOR));
+        wprintw(window->win, "PAUSED");
+        wattroff(window->win, COLOR_PAIR(WINDOW_STATUS_PAUSED_COLOR));
+    } else {
+        wattron(window->win, COLOR_PAIR(WINDOW_STATUS_RUNNING_COLOR));
+        wprintw(window->win, "Running... ");
+        printRotatingThingy(window->win);
+        wattroff(window->win, COLOR_PAIR(WINDOW_STATUS_RUNNING_COLOR));
+    }
+
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 2, WINDOW_CONTENT_X_OFFSET, 
+                "Instructions to next timer: %-2u", core->instrToTimer);
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 3, WINDOW_CONTENT_X_OFFSET,
+                "Delay timer state: %-2u", core->tDelay);
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 4, WINDOW_CONTENT_X_OFFSET,
+                "Sound timer state: %-2u", core->tSound);
+
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 6, WINDOW_CONTENT_X_OFFSET,
+                "Keypad state: %s", g_keypadReadable);
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 7, WINDOW_CONTENT_X_OFFSET,
+                "              ");
+
+    for (BYTE i = 0; i < 16; i++)
+        wprintw(window->win, "%u", GET_BIT(core->keypadState, i));
+}
+
 /* ====================== DEBUGGER MENU HANDLERS =================== */
 
 /* Global actions handlers */
@@ -449,10 +491,6 @@ void gHandler_pauseresume(Debugger *dbg) {
     dbg->flags ^= DEBUGGER_FLAG_STEP_MODE;
 }
 
-void gHandler_loadrom(Debugger *dbg) {
-    return;
-}
-
 /* Popup-wise actions handlers */
 
 void pHandler_cancel(Debugger *dbg) {
@@ -463,6 +501,7 @@ void pHandler_cancel(Debugger *dbg) {
 
 void pHandler_save(Debugger *dbg) {
     dbg->flags &= ~DEBUGGER_FLAG_POPUP;
+    dbg->popup->hsave(dbg, dbg->popup);
     gPopupExit_ALL(dbg, dbg->popup);
     dbg->popup = NULL;
 }
@@ -518,6 +557,11 @@ void wHandler_mem_goto(Debugger *dbg) {
     dbg->popup = &g_popups[DEBUGGER_POPUP_MEM_GOTO];
 }
 
+void wHandler_dis_goto(Debugger *dbg) {
+    dbg->flags |= DEBUGGER_FLAG_POPUP;
+    dbg->popup = &g_popups[DEBUGGER_POPUP_DIS_GOTO];
+}
+
 /* ================== DEBUGGER POPUP DRAW SAVE EXIT ================ */
 
 static inline void destroyForm(DebuggerPopup *popup) {
@@ -536,18 +580,34 @@ void gPopupExit_ALL(Debugger *dbg, DebuggerPopup *popup) {
 }
 
 void gPopupKeys_ALL(Debugger *dbg, DebuggerPopup *popup) {
-    switch(dbg->lastInput) {
-    case KEY_DOWN:
-        form_driver(dbg->popup->form, REQ_NEXT_FIELD);
-        form_driver(dbg->popup->form, REQ_END_LINE);
-        break;
-    case KEY_UP:
-        form_driver(dbg->popup->form, REQ_PREV_FIELD);
-        form_driver(dbg->popup->form, REQ_END_LINE);
-        break;
-    default:
-        form_driver(dbg->popup->form, dbg->lastInput);
-        break;
+    if (dbg->lastInput != ERR) {
+        switch(dbg->lastInput) {
+        case KEY_STAB:
+        case KEY_DOWN:
+            form_driver(popup->form, REQ_NEXT_FIELD);
+            form_driver(popup->form, REQ_END_LINE);
+            break;
+        case KEY_UP:
+            form_driver(popup->form, REQ_PREV_FIELD);
+            form_driver(popup->form, REQ_END_LINE);
+            break;
+        case KEY_BACKSPACE:
+            form_driver(popup->form, REQ_PREV_CHAR);
+            form_driver(popup->form, REQ_DEL_CHAR);
+            break;
+        case KEY_DC:
+            form_driver(popup->form, REQ_DEL_CHAR);
+            break;
+        case KEY_LEFT:
+            form_driver(popup->form, REQ_PREV_CHAR);
+            break;
+        case KEY_RIGHT:
+            form_driver(popup->form, REQ_NEXT_CHAR);
+            break;
+        default:
+            form_driver(popup->form, dbg->lastInput);
+            break;
+        }
     }
 }
 
@@ -555,29 +615,62 @@ void wPopupDraw_findmem(Debugger *dbg, DebuggerPopup *popup) {
     for (int i = 0; i < DEBUGGER_POPUP_MAX_FIELDS; i++)
         popup->fields[i] = NULL;
 
-    popup->fields[0] = new_field(2, 10, 2, 10, 0, 0);    
-    set_field_opts(popup->fields[0], O_VISIBLE | O_ACTIVE);
-    set_field_back(popup->fields[0], A_UNDERLINE);
+    popup->fields[0] = new_field(1, POPUP_SUB_X_LENGTH, POPUP_SUB_Y_OFFSET, POPUP_SUB_X_OFFSET, 0, 0);    
+    set_field_fore(popup->fields[0], COLOR_PAIR(MENU_BAR_COLOR));
+    set_field_back(popup->fields[0], COLOR_PAIR(MENU_BAR_COLOR));
     field_opts_off(popup->fields[0], O_AUTOSKIP);
 
-    popup->fields[1] = new_field(2, 10, 4, 10, 0, 0);    
-    set_field_opts(popup->fields[1], O_VISIBLE | O_ACTIVE);
-    set_field_back(popup->fields[1], A_UNDERLINE);
-    field_opts_off(popup->fields[1], O_AUTOSKIP);
-
-    popup->fields[2] = NULL;
+    popup->fields[popup->field_count] = NULL;
 
     set_form_win(popup->form, dbg->popup_win);
     set_form_sub(popup->form, dbg->popup_sub);
     popup->form = new_form(popup->fields);
+    set_current_field(popup->form, popup->fields[0]);
     post_form(popup->form);
 
-    mvwprintw(dbg->popup_win, 2, 2, "TestField: ");
+    mvwprintw(dbg->popup_win, 2, 2, "Memory Address: ");
 }
 
 void wPopupSave_findmem(Debugger *dbg, DebuggerPopup *popup) {
-    if (popup->form)
+    MemoryWindowData *data;
+    if (popup->form) {
+        form_driver(popup->form, REQ_VALIDATION);
+        data = dbg->windows[DEBUG_WINDOW_MEMORY]->auxdata;
+        data->addr_start = strtoll(field_buffer(popup->fields[0], 0), NULL, 16);
+        dbg->windows[DEBUG_WINDOW_MEMORY]->flags |= WINDOW_FLAG_TOUCHED;
         destroyForm(popup);
+    }
+}
+
+void wPopupDraw_findop(Debugger *dbg, DebuggerPopup *popup) {
+    for (int i = 0; i < DEBUGGER_POPUP_MAX_FIELDS; i++)
+        popup->fields[i] = NULL;
+
+    popup->fields[0] = new_field(1, POPUP_SUB_X_LENGTH, POPUP_SUB_Y_OFFSET, POPUP_SUB_X_OFFSET, 0, 0);    
+    set_field_fore(popup->fields[0], COLOR_PAIR(MENU_BAR_COLOR));
+    set_field_back(popup->fields[0], COLOR_PAIR(MENU_BAR_COLOR));
+    field_opts_off(popup->fields[0], O_AUTOSKIP);
+
+    popup->fields[popup->field_count] = NULL;
+
+    set_form_win(popup->form, dbg->popup_win);
+    set_form_sub(popup->form, dbg->popup_sub);
+    popup->form = new_form(popup->fields);
+    set_current_field(popup->form, popup->fields[0]);
+    post_form(popup->form);
+
+    mvwprintw(dbg->popup_win, 2, 2, "Memory Address: ");
+}
+
+void wPopupSave_findop(Debugger *dbg, DebuggerPopup *popup) {
+    DisasmWindowData *data;
+    if (popup->form) {
+        form_driver(popup->form, REQ_VALIDATION);
+        data = dbg->windows[DEBUG_WINDOW_DISASM]->auxdata;
+        data->addr_start = strtoll(field_buffer(popup->fields[0], 0), NULL, 16);
+        dbg->windows[DEBUG_WINDOW_DISASM]->flags |= WINDOW_FLAG_TOUCHED;
+        destroyForm(popup);
+    }
 }
 
 /* ==================== DEBUGGER CONTEXT FUNCTIONS ================= */
@@ -615,7 +708,7 @@ void updateMenu(Debugger *dbg, DebuggerWindow *dwin) {
     wrefresh(dbg->menuwin);
 }
 
-static inline void callHandler(Debugger *dbg) {
+static void callHandler(Debugger *dbg) {
     if (dbg->popup) {
         for (BYTE i = 0; i < POPUP_OPTION_COUNT; i++) {
             if (dbg->lastInput == g_popup_opts[i].key) {
@@ -667,13 +760,15 @@ VM_RESULT updateDebugger(Debugger *dbg) {
 
     dbg->lastInput = getch();
     VM_RESULT ret = VM_RESULT_SUCCESS;
-    
-    if (!(dbg->flags & DEBUGGER_FLAG_EDITING))
-        gNavHandler(dbg);
-    else if (dbg->current->menu->navhandler != NULL) 
-        dbg->current->menu->navhandler(dbg);
+   
+    if (dbg->lastInput != ERR) {
+        if (!(dbg->flags & DEBUGGER_FLAG_EDITING))
+            gNavHandler(dbg);
+        else if (dbg->current->menu->navhandler != NULL) 
+            dbg->current->menu->navhandler(dbg);
 
-    callHandler(dbg);
+        callHandler(dbg);
+    }
 
     if (dbg->flags & DEBUGGER_FLAG_EXIT)
         return VM_RESULT_EVENT_QUIT;
@@ -687,9 +782,12 @@ VM_RESULT updateDebugger(Debugger *dbg) {
     }
 
     if (dbg->flags & DEBUGGER_FLAG_POPUP) {
+        curs_set(1);
         if (!dbg->popup->isDrawn) {
             top_panel(dbg->popup_pan);
             show_panel(dbg->popup_pan);
+            top_panel(dbg->popup_sub_pan);
+            show_panel(dbg->popup_sub_pan);
             werase(dbg->popup_sub);
             werase(dbg->popup_win);
             dbg->popup->hdraw(dbg, dbg->popup);
@@ -699,8 +797,10 @@ VM_RESULT updateDebugger(Debugger *dbg) {
         wrefresh(dbg->popup_win);
         wrefresh(dbg->popup_sub);
     } else {
+        curs_set(0);
         werase(dbg->popup_sub);
         werase(dbg->popup_win);
+        hide_panel(dbg->popup_sub_pan);
         hide_panel(dbg->popup_pan);
     }
 
@@ -761,6 +861,12 @@ static const DebuggerColorPair dbgColorPairs[WINDOW_COLOR_END_NR] = {
         .fc = COLOR_RED, .bc = COLOR_BLACK
     },
     /* WINDOW_FLAGS_NORMAL_COLOR */ {
+        .fc = COLOR_GREEN, .bc = COLOR_BLACK
+    },
+    /* WINDOW_STATUS_PAUSED_COLOR */ {
+        .fc = COLOR_YELLOW, .bc = COLOR_BLACK
+    },
+    /* WINDOW_STATUS_RUNNING_COLOR */ {
         .fc = COLOR_GREEN, .bc = COLOR_BLACK
     },
     /* MENU_BAR_COLOR */ {
@@ -830,6 +936,8 @@ VM_RESULT initDebugger(Debugger **m_dbg, const C8core *_core) {
     dbg->popup_sub = derwin(dbg->popup_win, DEBUGGER_POPUP_SUB_L, DEBUGGER_POPUP_SUB_C,
                 DEBUGGER_POPUP_SUB_Y, DEBUGGER_POPUP_SUB_X);
     dbg->popup_pan = new_panel(dbg->popup_win);
+    dbg->popup_sub_pan = new_panel(dbg->popup_sub);
+    top_panel(dbg->popup_sub_pan);
     top_panel(dbg->popup_pan);
     dbg->popup = NULL;
 
@@ -857,6 +965,7 @@ VM_RESULT destroyDebugger(Debugger **m_dbg) {
     destroyDisassembler();
 
     del_panel(dbg->popup_pan);
+    del_panel(dbg->popup_sub_pan);
     delwin(dbg->popup_win);
     delwin(dbg->popup_sub);
     delwin(dbg->menuwin);

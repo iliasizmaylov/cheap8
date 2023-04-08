@@ -41,7 +41,6 @@ typedef struct _Opcode {
 } Opcode;
 
 typedef enum {
-	OP_CALL_MCR = 0,        // 0NNN; Calls machine code routine NNN
 	OP_CLEAR_SCREEN,        // 00E0; Clear screen
 	OP_RETURN,              // 00EE; Return from subroutine
 	OP_JUMP,                // 1NNN; Jump to address NNN
@@ -76,6 +75,7 @@ typedef enum {
 	OP_SET_BCD,             // FX33; Save binary-coded decimal of VX at I, I+1, I+2
 	OP_DUMP_REGS,           // FX55; Stores V0 to VX (including VX) in memory starting at address I
 	OP_LOAD_REGS,           // FX65; Loads V0 to VX from memory starting from address I
+	OP_CALL_MCR,        // 0NNN; Calls machine code routine NNN
 	OPCODE_COUNT
 } OpcodeDescription;
 
@@ -83,7 +83,6 @@ BYTE getOpcodeIndex(WORD raw);
 
 void processOpcode(C8core *core);
 
-void handle_OP_CALL_MCR(C8core *core, BYTE xParam, BYTE yParam, WORD nParam);
 void handle_OP_CLEAR_SCREEN(C8core *core, BYTE xParam, BYTE yParam, WORD nParam);
 void handle_OP_RETURN(C8core *core, BYTE xParam, BYTE yParam, WORD nParam);
 void handle_OP_JUMP(C8core *core,  BYTE xParam, BYTE yParam, WORD nParam);
@@ -119,6 +118,7 @@ void handle_OP_SET_IDX_SPRITE(C8core *core, BYTE xParam, BYTE yParam, WORD nPara
 void handle_OP_SET_BCD(C8core *core, BYTE xParam, BYTE yParam, WORD nParam);
 void handle_OP_DUMP_REGS(C8core *core, BYTE xParam, BYTE yParam, WORD nParam);
 void handle_OP_LOAD_REGS(C8core *core, BYTE xParam, BYTE yParam, WORD nParam);
+void handle_OP_CALL_MCR(C8core *core, BYTE xParam, BYTE yParam, WORD nParam);
 
 extern const Opcode OPCODES[OPCODE_COUNT];
 
