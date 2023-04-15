@@ -23,7 +23,6 @@ static Instruction *g_disasmem[MEMORY_RANGE_PROGRAM_MAX + 1];
 static BYTE g_disas_init = 0;
 
 void (* const optostrfn[OPCODE_COUNT])(Instruction*) = {
-	optostr_CALL_MCR,
 	optostr_CLEAR_SCREEN,
 	optostr_RETURN,
 	optostr_JUMP,
@@ -57,7 +56,8 @@ void (* const optostrfn[OPCODE_COUNT])(Instruction*) = {
 	optostr_SET_IDX_SPRITE,
 	optostr_SET_BCD,
 	optostr_DUMP_REGS,
-	optostr_LOAD_REGS
+	optostr_LOAD_REGS,
+	optostr_CALL_MCR
 };
 
 /**

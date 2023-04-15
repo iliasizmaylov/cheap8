@@ -42,7 +42,6 @@ VM_RESULT destroyDisassembler();
 
 /* =================== OPCODE TO STRING FUNCTIONS =================== */
 
-void optostr_CALL_MCR(Instruction *instr);
 void optostr_CLEAR_SCREEN(Instruction *instr);
 void optostr_RETURN(Instruction *instr);
 void optostr_JUMP(Instruction *instr);
@@ -77,5 +76,6 @@ void optostr_SET_IDX_SPRITE(Instruction *instr);
 void optostr_SET_BCD(Instruction *instr);
 void optostr_DUMP_REGS(Instruction *instr);
 void optostr_LOAD_REGS(Instruction *instr);
+void optostr_CALL_MCR(Instruction *instr);
 
 #endif  /* _C8COMP_H_ */

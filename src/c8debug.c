@@ -433,16 +433,14 @@ void updateCurrentState(Debugger *dbg, DebuggerWindow *window, const C8core *cor
         wattroff(window->win, COLOR_PAIR(WINDOW_STATUS_RUNNING_COLOR));
     }
 
-    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 2, WINDOW_CONTENT_X_OFFSET, 
-                "Instructions to next timer: %-2u", core->instrToTimer);
-    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 3, WINDOW_CONTENT_X_OFFSET,
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 2, WINDOW_CONTENT_X_OFFSET,
                 "Delay timer state: %-2u", core->tDelay);
-    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 4, WINDOW_CONTENT_X_OFFSET,
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 3, WINDOW_CONTENT_X_OFFSET,
                 "Sound timer state: %-2u", core->tSound);
 
-    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 6, WINDOW_CONTENT_X_OFFSET,
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 5, WINDOW_CONTENT_X_OFFSET,
                 "Keypad state: %s", g_keypadReadable);
-    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 7, WINDOW_CONTENT_X_OFFSET,
+    mvwprintw(window->win, WINDOW_CONTENT_Y_OFFSET + 6, WINDOW_CONTENT_X_OFFSET,
                 "              ");
 
     for (BYTE i = 0; i < 16; i++)

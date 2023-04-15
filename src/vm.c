@@ -58,6 +58,9 @@ VM_RESULT initVideoInterface(VideoInterface **m_interface) {
 			VIDEO_DEFAULT_RENDER_INDEX,
 			VIDEO_DEFAULT_RENDER_FLAGS);
 
+    SDL_SetRenderDrawBlendMode(interface->renderer, SDL_BLENDMODE_BLEND);
+    clearScreen(interface);
+
 	VM_ASSERT(interface->renderer == NULL);
 
 	return VM_RESULT_SUCCESS;
@@ -67,8 +70,25 @@ VM_RESULT initVideoInterface(VideoInterface **m_interface) {
 // TODO: add support for curses VideoInterface later
 VM_RESULT clearScreen(VideoInterface *interface) {
 	VM_ASSERT(interface == NULL);
+    
+    SDL_Rect nextPixel;
+    SDL_SetRenderDrawColor(interface->renderer, VIDEO_BLACK_PIXEL_RGBO);
 
-	SDL_RenderClear(interface->renderer);
+    int col = 0;
+    int row = 0;
+
+    for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
+        col = i * interface->pixelHeight;
+        for (BYTE j = 0; j < SCREEN_RESOLUTION_WIDTH; j++) {
+            row = j * interface->pixelWidth;
+            GET_NEXT_PIXEL(nextPixel, row, col,
+                        interface->pixelWidth,
+                        interface->pixelHeight);
+            SDL_RenderFillRect(interface->renderer, &nextPixel);
+        }
+    }
+
+    SDL_RenderPresent(interface->renderer);
 
 	return VM_RESULT_SUCCESS;
 }
@@ -92,9 +112,9 @@ VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowCo
 
 	for (BYTE i = SCREEN_RESOLUTION_WIDTH ; i > 0; i--) {
 		GET_NEXT_PIXEL(nextPixel,
-				currentCol, rowOffset,
-				interface->pixelWidth,
-				interface->pixelHeight);
+				    currentCol, rowOffset,
+				    interface->pixelWidth,
+				    interface->pixelHeight);
 		
 		if ((rowContent >> (i - 1)) & 1) {
 			SDL_SetRenderDrawColor(interface->renderer, VIDEO_WHITE_PIXEL_RGBO);
@@ -109,6 +129,28 @@ VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowCo
 	return VM_RESULT_SUCCESS;
 }
 
+VM_RESULT redrawPixel(VideoInterface *interface, QWORD *screen, WORD row, WORD col) {
+    SDL_Rect nextPixel;
+    BYTE pxl = GET_BIT_BE(screen[row], col);
+
+    row *= interface->pixelHeight;
+    col *= interface->pixelWidth;
+
+    GET_NEXT_PIXEL(nextPixel,
+                col, row,
+                interface->pixelWidth,
+                interface->pixelHeight);
+
+    if (pxl)
+        SDL_SetRenderDrawColor(interface->renderer, VIDEO_WHITE_PIXEL_RGBO);
+    else
+        SDL_SetRenderDrawColor(interface->renderer, VIDEO_BLACK_PIXEL_RGBO);
+
+    SDL_RenderFillRect(interface->renderer, &nextPixel);
+
+    return VM_RESULT_SUCCESS;
+}
+
 /** redrawScreen
  *
  * @param interface
@@ -119,12 +161,12 @@ VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowCo
  * @description:
  *  Redraws the whole screen using a given screen content
  */
-VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen) {
+VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen, QWORD *gfx_upd) {
 	VM_ASSERT(interface == NULL);
 
-	for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
-		redrawScreenRow(interface, i, screen[i]);
-	}
+	for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++)
+		for (BYTE j = 0; j < SCREEN_RESOLUTION_WIDTH; j++)
+            redrawPixel(interface, screen, i, j);
 
 	SDL_RenderPresent(interface->renderer);
 
@@ -431,12 +473,14 @@ VM_RESULT runVM(VM *vm) {
 
 	while (runningState == VM_RESULT_SUCCESS) {
 		currentTicks = SDL_GetTicks64();
-        nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
         
-        if (dbgHeld == VM_RESULT_SUCCESS)
+        if (dbgHeld == VM_RESULT_SUCCESS) {
+            nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
             nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_CYCLE;
-        else
+        } else {
+            nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE_DBG;
             nextTimerTicks = currentTicks + CORE_TICKS_PER_CYCLE;
+        }
 
 		if (currentTicks < nextTicks) {
 			SDL_Delay(nextTicks - currentTicks);
@@ -463,8 +507,12 @@ VM_RESULT runVM(VM *vm) {
 
         if (dbgHeld == VM_RESULT_SUCCESS) {
             if (CHECK_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_REDRAW_PENDING)) {
-                redrawScreen(vm->video, vm->core->gfx);
+                redrawScreen(vm->video, vm->core->gfx, vm->core->gfx_upd);
+                memset(vm->core->gfx_upd, 0, sizeof(QWORD) * SCREEN_RESOLUTION_HEIGHT);
                 UNSET_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_REDRAW_PENDING);
+            } else if (CHECK_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_CLEAR_SCREEN)) {
+                clearScreen(vm->video);
+                UNSET_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_CLEAR_SCREEN);
             }
 
             if (vm->core->tSound > 0) {

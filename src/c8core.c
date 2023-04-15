@@ -83,7 +83,6 @@ VM_RESULT initCore(C8core **m_core, FILE *ROM) {
     // Zero system clock (in ticks)
     // TODO: When adding ncurses implementation this needs to change
 	core->prevCycleTicks = SDL_GetTicks64();
-    core->instrToTimer = TIMER_DECREASE_FREQUENCY;
 	core->prevTimerTicks = SDL_GetTicks64();
 
     // Zero custom flags
@@ -92,6 +91,7 @@ VM_RESULT initCore(C8core **m_core, FILE *ROM) {
     // Clear the screen (set all pixels to black)
 	for (WORD i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
 		core->gfx[i] = 0;
+        core->gfx_upd[i] = 0;
 	}
 
     // Load ROM file into memory

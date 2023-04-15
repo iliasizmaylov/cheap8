@@ -131,12 +131,13 @@ void handle_OP_CALL_MCR(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	// 		b) This opcode is unused by a good majority of ROMs
 
 	// If we encounter this opcode then we set a custom flag indicating that we indeed encountered it
-	SET_CUSTOM_FLAG(core, CUSTOM_FLAG_MCR_OPCODE);
+	SET_CUSTOM_FLAG(core, CUSTOM_FLAG_CRITICAL_ERROR);
 }
 
 void handle_OP_CLEAR_SCREEN(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	memset(core->gfx, 0, sizeof(QWORD) * SCREEN_RESOLUTION_HEIGHT);
-	SET_CUSTOM_FLAG(core, CUSTOM_FLAG_REDRAW_PENDING);
+    memset(core->gfx_upd, 0, sizeof(QWORD) * SCREEN_RESOLUTION_HEIGHT);
+	SET_CUSTOM_FLAG(core, CUSTOM_FLAG_CLEAR_SCREEN);
 }
 
 void handle_OP_RETURN(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
@@ -311,19 +312,23 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
     // Iterating over bytes representing sprite pixel rows
 	for (BYTE sprite = 0; sprite < nParam; sprite++) {
 		QWORD newScreenRow = 0;
+        QWORD newUpdateRow = 0;
         QWORD qsprite = core->memory[core->I + sprite];
         
         // If we overlap the screen vertically
 		if (x + 8 > SCREEN_RESOLUTION_WIDTH) {
             // Then draw the remainder starting from the left (overlap it visually)
 			newScreenRow |= qsprite >> (x + 8 - SCREEN_RESOLUTION_WIDTH);
+            newUpdateRow |= (QWORD)0xFF >> (x + 8 - SCREEN_RESOLUTION_WIDTH);
 		} else { 
             // Otherwise draw the sprite row normally
 			newScreenRow |= qsprite << (SCREEN_RESOLUTION_WIDTH - x - 8);
+            newUpdateRow |= (QWORD)0xFF << (SCREEN_RESOLUTION_WIDTH - x - 8);
 		}
         
 		QWORD savedScreenRow = core->gfx[y];
 		core->gfx[y] ^= newScreenRow;
+        core->gfx_upd[y] |= newUpdateRow;
 
         // If any of the bits on the screen that the sprite was drawn over were set
 		if ((savedScreenRow | newScreenRow) != core->gfx[y]) {

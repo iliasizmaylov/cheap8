@@ -145,7 +145,7 @@ void wHandler_dis_goto(Debugger *dbg);
 static const DebuggerMenuOption g_opts[GLOBAL_OPTION_COUNT] = {
     {.name = "Quit", .key = 'q', .keystr = "Q", .handler = gHandler_quit},
     {.name = "Back", .key = 27, .keystr = "ESC", .handler = gHandler_back},
-    {.name = "Select", .key = KEY_ENTER, .keystr = "ENTER", .handler = gHandler_select},
+    {.name = "Select", .key = 10, .keystr = "ENTER", .handler = gHandler_select},
     {.name = "Step-In", .key = ' ', .keystr = "SPACE", .handler = gHandler_stepin},
     {.name = "Pause/Resume", .key = 'p', .keystr = "P", .handler = gHandler_pauseresume}
 };
@@ -153,7 +153,7 @@ static const DebuggerMenuOption g_opts[GLOBAL_OPTION_COUNT] = {
 #define POPUP_OPTION_COUNT      2
 static const DebuggerMenuOption g_popup_opts[POPUP_OPTION_COUNT] = {
     {.name = "Cancel", .key = 27, .keystr = "ESC", .handler = pHandler_cancel},
-    {.name = "OK", .key = KEY_ENTER, .keystr = "ENTER", .handler = pHandler_save}
+    {.name = "OK", .key = 10, .keystr = "ENTER", .handler = pHandler_save}
 };
 
 #define WINDOW_MEMORY_OPTION_COUNT  1

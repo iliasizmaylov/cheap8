@@ -15,8 +15,8 @@
 
 // ============================= Video Interface Definition =============================
 
-#define VIDEO_DEFAULT_RESOLUTION_WIDTH		(SCREEN_RESOLUTION_WIDTH * 15)
-#define VIDEO_DEFAULT_RESOLUTION_HEIGHT		(SCREEN_RESOLUTION_HEIGHT * 15)
+#define VIDEO_DEFAULT_RESOLUTION_WIDTH		(SCREEN_RESOLUTION_WIDTH * 20)
+#define VIDEO_DEFAULT_RESOLUTION_HEIGHT		(SCREEN_RESOLUTION_HEIGHT * 20)
 #define VIDEO_DEFAULT_FLAGS					0
 #define VIDEO_DEFAULT_WINDOW_TITLE			"Cheap-8"
 #define VIDEO_DEFAULT_RENDER_INDEX			-1
@@ -46,7 +46,8 @@ typedef struct _VideoInterface {
 VM_RESULT initVideoInterface(VideoInterface **m_interface);
 VM_RESULT clearScreen(VideoInterface *interface);
 VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowContent);
-VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen);
+VM_RESULT redrawPixel(VideoInterface *interface, QWORD *screen, WORD row, WORD col);
+VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen, QWORD *gfx_upd);
 VM_RESULT destroyVideoInterface(VideoInterface **m_interface);
 
 // ============================= Audio Interface Definition =============================
