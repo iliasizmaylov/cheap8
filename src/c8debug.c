@@ -89,34 +89,35 @@ void generateWindowPos(DebuggerWindow *dwin) {
 
     int xChunk = -1;
     int yChunk = -1;
+    const char *layout = g_debuggerLayoutNoDisplay;
 
     char cl;
 
     for (int i = 0; i < DEFAULT_LAYOUT_ROWS; i++) {
         for (int j = 0; j < DEFAULT_LAYOUT_COLS; j++) {
-            cl = g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + j];
+            cl = layout[i * DEFAULT_LAYOUT_ROWS + j];
             if (cl == dwin->literal) {
                 if (j > 0 && dwin->left == NULL) {
-                    if (g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + (j - 1)] != cl) {
-                        dwin->left = findByLiteral(g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + (j - 1)]);
+                    if (layout[i * DEFAULT_LAYOUT_ROWS + (j - 1)] != cl) {
+                        dwin->left = findByLiteral(layout[i * DEFAULT_LAYOUT_ROWS + (j - 1)]);
                     }
                 }
 
                 if (j < (DEFAULT_LAYOUT_ROWS - 1) && dwin->right == NULL) {
-                    if (g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + (j + 1)] != cl) {
-                        dwin->right = findByLiteral(g_debuggerLayout[i * DEFAULT_LAYOUT_ROWS + (j + 1)]);
+                    if (layout[i * DEFAULT_LAYOUT_ROWS + (j + 1)] != cl) {
+                        dwin->right = findByLiteral(layout[i * DEFAULT_LAYOUT_ROWS + (j + 1)]);
                     }
                 }
                     
                 if (i > 0 && dwin->up == NULL) {
-                    if (g_debuggerLayout[(i - 1) * DEFAULT_LAYOUT_ROWS + j] != cl) {
-                        dwin->up = findByLiteral(g_debuggerLayout[(i - 1) * DEFAULT_LAYOUT_ROWS + j]);
+                    if (layout[(i - 1) * DEFAULT_LAYOUT_ROWS + j] != cl) {
+                        dwin->up = findByLiteral(layout[(i - 1) * DEFAULT_LAYOUT_ROWS + j]);
                     }
                 }
 
                 if (i < (DEFAULT_LAYOUT_ROWS - 1) && dwin->down == NULL) {
-                    if (g_debuggerLayout[(i + 1) * DEFAULT_LAYOUT_ROWS + j] != cl) {
-                        dwin->down = findByLiteral(g_debuggerLayout[(i + 1) * DEFAULT_LAYOUT_ROWS + j]);
+                    if (layout[(i + 1) * DEFAULT_LAYOUT_ROWS + j] != cl) {
+                        dwin->down = findByLiteral(layout[(i + 1) * DEFAULT_LAYOUT_ROWS + j]);
                     }
                 }
 
