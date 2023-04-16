@@ -40,12 +40,12 @@ const char *g_debuggerLayout =
 const char *g_debuggerLayoutNoDisplay =
     "cccrrffssp"
     "cccrrffssp"
+    "cccrrffssp"
     "dddddmmmmm"
     "dddddmmmmm"
     "dddddmmmmm"
     "dddddmmmmm"
-    ".........."
-    ".........."
+    "dddddmmmmm"
     ".........."
     "..........";
 
