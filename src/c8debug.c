@@ -704,7 +704,7 @@ void updateMenu(Debugger *dbg, DebuggerWindow *dwin) {
         }
     }
 
-    wrefresh(dbg->menuwin);
+    wnoutrefresh(dbg->menuwin);
 }
 
 static void callHandler(Debugger *dbg) {
@@ -750,7 +750,7 @@ VM_RESULT updateDebugger(Debugger *dbg) {
                 werase(dbg->windows[i]->win);
                 dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
                 drawWindowBox(dbg, dbg->windows[i]);
-                wrefresh(dbg->windows[i]->win);
+                wnoutrefresh(dbg->windows[i]->win);
             }
         }
     }
@@ -793,8 +793,8 @@ VM_RESULT updateDebugger(Debugger *dbg) {
             dbg->popup->isDrawn = 1;
             drawPopupBox(dbg);
         }
-        wrefresh(dbg->popup_win);
-        wrefresh(dbg->popup_sub);
+        wnoutrefresh(dbg->popup_win);
+        wnoutrefresh(dbg->popup_sub);
     } else {
         curs_set(0);
         werase(dbg->popup_sub);

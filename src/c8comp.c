@@ -118,9 +118,9 @@ static void setAsmstr(Instruction *instr) {
     char nstr[8] = "";
 
     if (instr->xParam != PARAMETER_UNUSED)
-        sprintf(xstr, " V%u", instr->xParam);
+        sprintf(xstr, " V%X", instr->xParam);
     if (instr->yParam != PARAMETER_UNUSED)
-        sprintf(ystr, " V%u", instr->yParam);
+        sprintf(ystr, " V%X", instr->yParam);
     if (instr->nParam != PARAMETER_UNUSED)
         sprintf(nstr, " 0x%03X", instr->nParam);
 
@@ -225,63 +225,63 @@ void optostr_CALL_SUBR(Instruction *instr) {
 }
 
 void optostr_SKIP_EQ(Instruction *instr) {
-    sprintf(instr->readable, "if V%u != %u then", instr->xParam, instr->nParam);
+    sprintf(instr->readable, "if V%X != %u then", instr->xParam, instr->nParam);
 }
 
 void optostr_SKIP_NEQ(Instruction *instr) {
-    sprintf(instr->readable, "if V%u == %u then", instr->xParam, instr->nParam);
+    sprintf(instr->readable, "if V%X == %u then", instr->xParam, instr->nParam);
 }
 
 void optostr_SKIP_EQ_REG(Instruction *instr) {
-    sprintf(instr->readable, "if V%u != V%u then", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "if V%X != V%X then", instr->xParam, instr->yParam);
 }
 
 void optostr_SET_CONST(Instruction *instr) {
-    sprintf(instr->readable, "V%u := %u", instr->xParam, instr->nParam);
+    sprintf(instr->readable, "V%X := %u", instr->xParam, instr->nParam);
 }
 
 void optostr_ADD_CONST(Instruction *instr) {
-    sprintf(instr->readable, "V%u += %u", instr->xParam, instr->nParam);
+    sprintf(instr->readable, "V%X += %u", instr->xParam, instr->nParam);
 }
 
 void optostr_SET_REG(Instruction *instr) {
-    sprintf(instr->readable, "V%u := V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X := V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_OR_REG(Instruction *instr) {
-    sprintf(instr->readable, "V%u |= V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X |= V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_AND_REG(Instruction *instr) {
-    sprintf(instr->readable, "V%u &= V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X &= V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_XOR_REG(Instruction *instr) {
-    sprintf(instr->readable, "V%u ^= V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X ^= V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_ADD_REG(Instruction *instr) {
-    sprintf(instr->readable, "V%u += V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X += V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_SUB_REG(Instruction *instr) {
-    sprintf(instr->readable, "V%u -= V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X -= V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_SHRIGHT_1(Instruction *instr) {
-    sprintf(instr->readable, "V%u >>= V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X >>= V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_REV_SUB_REG(Instruction *instr) {
-    sprintf(instr->readable, "V%u =- V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X =- V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_SHLEFT_1(Instruction *instr) {
-    sprintf(instr->readable, "V%u <<= V%u", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "V%X <<= V%X", instr->xParam, instr->yParam);
 }
 
 void optostr_SKIP_NEQ_REG(Instruction *instr) {
-    sprintf(instr->readable, "if V%u == V%u then", instr->xParam, instr->yParam);
+    sprintf(instr->readable, "if V%X == V%X then", instr->xParam, instr->yParam);
 }
 
 void optostr_SET_IDX(Instruction *instr) {
@@ -293,53 +293,53 @@ void optostr_JUMP_FROM_V0(Instruction *instr) {
 }
 
 void optostr_SET_RANDOM(Instruction *instr) {
-    sprintf(instr->readable, "V%u := (random & %u)", instr->xParam, instr->nParam);
+    sprintf(instr->readable, "V%X := (random & %u)", instr->xParam, instr->nParam);
 }
 
 void optostr_DRAW(Instruction *instr) {
-    sprintf(instr->readable, "sprite V%u V%u %u", instr->xParam, instr->yParam, instr->nParam);
+    sprintf(instr->readable, "sprite V%X V%X %u", instr->xParam, instr->yParam, instr->nParam);
 }
 
 void optostr_SKIP_KPRESS(Instruction *instr) {
-    sprintf(instr->readable, "if !key(V%u) then", instr->xParam);
+    sprintf(instr->readable, "if !key(V%X) then", instr->xParam);
 }
 
 void optostr_SKIP_NKPRESS(Instruction *instr) {
-    sprintf(instr->readable, "if key(V%u) then", instr->xParam);
+    sprintf(instr->readable, "if key(V%X) then", instr->xParam);
 }
 
 void optostr_SAVE_DELAY(Instruction *instr) {
-    sprintf(instr->readable, "V%u := delay", instr->xParam);
+    sprintf(instr->readable, "V%X := delay", instr->xParam);
 }
 
 void optostr_WAIT_KEY(Instruction *instr) {
-    sprintf(instr->readable, "V%u := keypress", instr->xParam);
+    sprintf(instr->readable, "V%X := keypress", instr->xParam);
 }
 
 void optostr_SET_DELAY(Instruction *instr) {
-    sprintf(instr->readable, "delay := V%u", instr->xParam);
+    sprintf(instr->readable, "delay := V%X", instr->xParam);
 }
 
 void optostr_SET_SOUND(Instruction *instr) {
-    sprintf(instr->readable, "buzzer := V%u", instr->xParam);
+    sprintf(instr->readable, "buzzer := V%X", instr->xParam);
 }
 
 void optostr_ADD_IDX(Instruction *instr) {
-    sprintf(instr->readable, "i += V%u", instr->xParam);
+    sprintf(instr->readable, "i += V%X", instr->xParam);
 }
 
 void optostr_SET_IDX_SPRITE(Instruction *instr) {
-    sprintf(instr->readable, "i := sprite(V%u)", instr->xParam);
+    sprintf(instr->readable, "i := sprite(V%X)", instr->xParam);
 }
 
 void optostr_SET_BCD(Instruction *instr) {
-    sprintf(instr->readable, "bcd V%u", instr->xParam);
+    sprintf(instr->readable, "bcd V%X", instr->xParam);
 }
 
 void optostr_DUMP_REGS(Instruction *instr) {
-    sprintf(instr->readable, "save V0-V%u", instr->xParam);
+    sprintf(instr->readable, "save V0-V%X", instr->xParam);
 }
 
 void optostr_LOAD_REGS(Instruction *instr) {
-    sprintf(instr->readable, "load V0-V%u", instr->xParam);
+    sprintf(instr->readable, "load V0-V%X", instr->xParam);
 }

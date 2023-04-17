@@ -45,9 +45,8 @@ typedef struct _VideoInterface {
 
 VM_RESULT initVideoInterface(VideoInterface **m_interface);
 VM_RESULT clearScreen(VideoInterface *interface);
-VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowContent);
 VM_RESULT redrawPixel(VideoInterface *interface, QWORD *screen, WORD row, WORD col);
-VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen, QWORD *gfx_upd);
+VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen);
 VM_RESULT destroyVideoInterface(VideoInterface **m_interface);
 
 // ============================= Audio Interface Definition =============================
@@ -62,8 +61,8 @@ VM_RESULT destroyVideoInterface(VideoInterface **m_interface);
 #define DEFAULT_SQWAVE_VOLUME			3000
 #define DEFAULT_SQWAVE_PERMUTATIONS		300
 
-#define AUDIO_STATE_PLAYING				1
-#define AUDIO_STATE_PAUSED				0
+#define AUDIO_STATE_PLAYING				0
+#define AUDIO_STATE_PAUSED				1
 
 typedef Sint16 (*WAVE_FUNCTION)(float, Uint16, Uint16, double);
 
@@ -77,6 +76,7 @@ typedef struct _AudioInterface {
 	SDL_AudioSpec specHave;
 	AudioCallbackData cbData;
 	BYTE state;
+    SDL_AudioDeviceID deviceId;
 } AudioInterface;
 
 VM_RESULT initAudioInterface(AudioInterface **m_interface);

@@ -89,10 +89,8 @@ VM_RESULT initCore(C8core **m_core, FILE *ROM) {
 	core->customFlags = 0;
 
     // Clear the screen (set all pixels to black)
-	for (WORD i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
+	for (WORD i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++)
 		core->gfx[i] = 0;
-        core->gfx_upd[i] = 0;
-	}
 
     // Load ROM file into memory
 	VM_ASSERT(loadROM(core, ROM) != VM_RESULT_SUCCESS);

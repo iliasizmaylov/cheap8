@@ -71,64 +71,26 @@ VM_RESULT initVideoInterface(VideoInterface **m_interface) {
 VM_RESULT clearScreen(VideoInterface *interface) {
 	VM_ASSERT(interface == NULL);
     
-    SDL_Rect nextPixel;
     SDL_SetRenderDrawColor(interface->renderer, VIDEO_BLACK_PIXEL_RGBO);
-
-    int col = 0;
-    int row = 0;
-
-    for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++) {
-        col = i * interface->pixelHeight;
-        for (BYTE j = 0; j < SCREEN_RESOLUTION_WIDTH; j++) {
-            row = j * interface->pixelWidth;
-            GET_NEXT_PIXEL(nextPixel, row, col,
-                        interface->pixelWidth,
-                        interface->pixelHeight);
-            SDL_RenderFillRect(interface->renderer, &nextPixel);
-        }
-    }
-
+    SDL_RenderClear(interface->renderer);
     SDL_RenderPresent(interface->renderer);
 
 	return VM_RESULT_SUCCESS;
 }
 
-/** redrawScreenRow
- *
+/** redrawPixel
+ * 
  * @param interface
- *  A pointer to VideoInterface struct to be used to output current screen row contents
- *  TODO:   Add support for curses video output
- * @param rowOffset
- *  A target screen row offset in a screen bit array to be output
- * @param rowContent
- *  64 bits representing new row contents to be but into a target row represented by rowOffset param
+ *  A pointer to VideoInterface struct to be used for output
+ * @param screen
+ *  Array of 64-bit long values representing screen row (size of 32 or 64 if hires)
+ * @param row
+ *  Row of a pixel to redraw
+ * @param col
+ *  Col of a pixel to redraw
  * @description:
- *  Output a given row of bits onto a screen using a provided VideoInterface
+ *  Redraws a given pixel on the screen
  */
-VM_RESULT redrawScreenRow(VideoInterface *interface, WORD rowOffset, QWORD rowContent) {
-	SDL_Rect nextPixel;
-	WORD currentCol = 0;
-	rowOffset *= interface->pixelHeight;
-
-	for (BYTE i = SCREEN_RESOLUTION_WIDTH ; i > 0; i--) {
-		GET_NEXT_PIXEL(nextPixel,
-				    currentCol, rowOffset,
-				    interface->pixelWidth,
-				    interface->pixelHeight);
-		
-		if ((rowContent >> (i - 1)) & 1) {
-			SDL_SetRenderDrawColor(interface->renderer, VIDEO_WHITE_PIXEL_RGBO);
-		} else {
-			SDL_SetRenderDrawColor(interface->renderer, VIDEO_BLACK_PIXEL_RGBO);
-		}
-
-		SDL_RenderFillRect(interface->renderer, &nextPixel);
-		currentCol += interface->pixelWidth;
-	}
-
-	return VM_RESULT_SUCCESS;
-}
-
 VM_RESULT redrawPixel(VideoInterface *interface, QWORD *screen, WORD row, WORD col) {
     SDL_Rect nextPixel;
     BYTE pxl = GET_BIT_BE(screen[row], col);
@@ -161,7 +123,7 @@ VM_RESULT redrawPixel(VideoInterface *interface, QWORD *screen, WORD row, WORD c
  * @description:
  *  Redraws the whole screen using a given screen content
  */
-VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen, QWORD *gfx_upd) {
+VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen) {
 	VM_ASSERT(interface == NULL);
 
 	for (BYTE i = 0; i < SCREEN_RESOLUTION_HEIGHT; i++)
@@ -260,9 +222,7 @@ void processAudioCallback(void *userData, Uint8 *bytestream, int bytes) {
  *  TODO: add support for other media libraries compatible with CLI only mode
  */
 VM_RESULT initAudioInterface(AudioInterface **m_interface) {
-	if (SDL_Init(SDL_INIT_AUDIO) != 0) {
-		return VM_RESULT_ERROR;
-	}	
+    VM_ASSERT(SDL_Init(SDL_INIT_AUDIO) != 0);
 
 	*m_interface = (AudioInterface*) malloc(sizeof(AudioInterface));
 	AudioInterface *interface = *m_interface;
@@ -283,8 +243,12 @@ VM_RESULT initAudioInterface(AudioInterface **m_interface) {
 	interface->cbData.getWaveSample = getSquareWave;
 
 	interface->state = AUDIO_STATE_PAUSED;
+    
+    interface->deviceId = SDL_OpenAudioDevice(NULL, 0,
+                &interface->specWant, &interface->specHave,
+                SDL_AUDIO_ALLOW_ANY_CHANGE);
 
-	if (SDL_OpenAudio(&(interface->specWant), &(interface->specHave)) != 0) {
+	if (!interface->deviceId) {
 		free(interface);
 		return VM_RESULT_ERROR;
 	}
@@ -312,8 +276,8 @@ VM_RESULT destroyAudioInterface(AudioInterface **m_interface) {
 	if (interface != NULL) {
 		free(interface);
 	}
-	
-	SDL_CloseAudio();
+
+	SDL_CloseAudioDevice(interface->deviceId);
 	return VM_RESULT_SUCCESS;
 }
 
@@ -327,12 +291,13 @@ VM_RESULT destroyAudioInterface(AudioInterface **m_interface) {
  *  TODO: Only for SDL2 based interface, need to add support for other libs
  */
 void startBeep(AudioInterface *interface) {
-	if (interface->state == AUDIO_STATE_PLAYING) {
+	if (interface->state == AUDIO_STATE_PLAYING)
 		return;
-	}
+
+    logToFile("Beep start\n");
 
 	interface->state = AUDIO_STATE_PLAYING;
-	SDL_PauseAudio(interface->state);
+	SDL_PauseAudioDevice(interface->deviceId, interface->state);
 }
 
 /** stopBeep
@@ -345,12 +310,12 @@ void startBeep(AudioInterface *interface) {
  *  TODO: Only for SDL2 based interface, need to add support for other libs
  */
 void stopBeep(AudioInterface *interface) {
-	if (interface->state == AUDIO_STATE_PAUSED) {
+	if (interface->state == AUDIO_STATE_PAUSED)
 		return;
-	}
 
+    logToFile("Beep stop\n");
 	interface->state = AUDIO_STATE_PAUSED;
-	SDL_PauseAudio(interface->state);
+	SDL_PauseAudioDevice(interface->deviceId, interface->state);
 }
 
 // =================================== VM Functions =================================== 
@@ -507,19 +472,17 @@ VM_RESULT runVM(VM *vm) {
 
         if (dbgHeld == VM_RESULT_SUCCESS) {
             if (CHECK_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_REDRAW_PENDING)) {
-                redrawScreen(vm->video, vm->core->gfx, vm->core->gfx_upd);
-                memset(vm->core->gfx_upd, 0, sizeof(QWORD) * SCREEN_RESOLUTION_HEIGHT);
+                redrawScreen(vm->video, vm->core->gfx);
                 UNSET_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_REDRAW_PENDING);
             } else if (CHECK_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_CLEAR_SCREEN)) {
                 clearScreen(vm->video);
                 UNSET_CUSTOM_FLAG(vm->core, CUSTOM_FLAG_CLEAR_SCREEN);
             }
 
-            if (vm->core->tSound > 0) {
+            if (vm->core->tSound > 0)
                 startBeep(vm->audio);
-            } else {
+            else
                 stopBeep(vm->audio);
-            }
         }
         
         runningState = pollEvents(vm, dbgHeld);

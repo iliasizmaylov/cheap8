@@ -136,7 +136,6 @@ void handle_OP_CALL_MCR(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 
 void handle_OP_CLEAR_SCREEN(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 	memset(core->gfx, 0, sizeof(QWORD) * SCREEN_RESOLUTION_HEIGHT);
-    memset(core->gfx_upd, 0, sizeof(QWORD) * SCREEN_RESOLUTION_HEIGHT);
 	SET_CUSTOM_FLAG(core, CUSTOM_FLAG_CLEAR_SCREEN);
 }
 
@@ -316,19 +315,15 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
         QWORD qsprite = core->memory[core->I + sprite];
         
         // If we overlap the screen vertically
-		if (x + 8 > SCREEN_RESOLUTION_WIDTH) {
+		if (x + 8 > SCREEN_RESOLUTION_WIDTH)
             // Then draw the remainder starting from the left (overlap it visually)
 			newScreenRow |= qsprite >> (x + 8 - SCREEN_RESOLUTION_WIDTH);
-            newUpdateRow |= (QWORD)0xFF >> (x + 8 - SCREEN_RESOLUTION_WIDTH);
-		} else { 
+		else
             // Otherwise draw the sprite row normally
 			newScreenRow |= qsprite << (SCREEN_RESOLUTION_WIDTH - x - 8);
-            newUpdateRow |= (QWORD)0xFF << (SCREEN_RESOLUTION_WIDTH - x - 8);
-		}
         
 		QWORD savedScreenRow = core->gfx[y];
 		core->gfx[y] ^= newScreenRow;
-        core->gfx_upd[y] |= newUpdateRow;
 
         // If any of the bits on the screen that the sprite was drawn over were set
 		if ((savedScreenRow | newScreenRow) != core->gfx[y]) {
@@ -433,23 +428,31 @@ void handle_OP_SET_BCD(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 }
 
 void handle_OP_DUMP_REGS(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
-	if (core->I > (MEMORY_SIZE - GENERAL_PURPOSE_REGISTERS)) {
+    if (xParam > GENERAL_PURPOSE_REGISTERS) {
+        SET_CUSTOM_FLAG(core, CUSTOM_FLAG_BAD_OPCODE);
+        return;
+    }
+
+	if (core->I > (MEMORY_SIZE - xParam + 1)) {
 		SET_CUSTOM_FLAG(core, CUSTOM_FLAG_BAD_MEMORY);
 		return;
 	}
-	
-	for (int i = 0; i < GENERAL_PURPOSE_REGISTERS; i++) {
+
+	for (BYTE i = 0; i <= xParam; i++)
 		core->memory[core->I + i] = core->reg[i];
-	}
 }
 
 void handle_OP_LOAD_REGS(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
-	if (core->I > (MEMORY_SIZE - GENERAL_PURPOSE_REGISTERS)) {
+    if (xParam > GENERAL_PURPOSE_REGISTERS) {
+        SET_CUSTOM_FLAG(core, CUSTOM_FLAG_BAD_OPCODE);
+        return;
+    }
+
+	if (core->I > (MEMORY_SIZE - xParam)) {
 		SET_CUSTOM_FLAG(core, CUSTOM_FLAG_BAD_MEMORY);
 		return;
 	}
-	
-	for (int i = 0; i < GENERAL_PURPOSE_REGISTERS; i++) {
+
+	for (BYTE i = 0; i <= xParam; i++)
 		core->reg[i] = core->memory[core->I + i];
-	}
 }

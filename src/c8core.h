@@ -43,8 +43,8 @@
 
 // Number of ticks per cycle and formula to get ticks per timer hit
 // given CORE_TICKS_PER_CYCLE
-#define CORE_TICKS_PER_CYCLE		5
-#define CORE_TICKS_PER_CYCLE_DBG	50
+#define CORE_TICKS_PER_CYCLE	    5
+#define CORE_TICKS_PER_CYCLE_DBG	80
 #define CORE_TICKS_PER_TIMER		CORE_TICKS_PER_CYCLE * (CPU_INSTRUCTIONS_PER_SECOND / TIMER_DECREASE_FREQUENCY)
 
 // Enum to easily access and identifiy register
@@ -145,7 +145,6 @@ typedef struct _C8core {
 	WORD stack[STACK_SIZE];					// Stack
 
 	QWORD gfx[SCREEN_RESOLUTION_HEIGHT];	// Array of pixels, pixels are either black or white (zero or one)
-    QWORD gfx_upd[SCREEN_RESOLUTION_HEIGHT];
 
 	BYTE tDelay;							// Delay 60Hz timer
 	BYTE tSound;							// Sound 60Hz timer

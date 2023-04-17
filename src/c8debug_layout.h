@@ -38,15 +38,15 @@ const char *g_debuggerLayout =
     "vvvvvvmmmf";
 
 const char *g_debuggerLayoutNoDisplay =
-    "cccrrffssp"
-    "cccrrffssp"
-    "cccrrffssp"
-    "dddddmmmmm"
-    "dddddmmmmm"
-    "dddddmmmmm"
-    "dddddmmmmm"
-    "dddddmmmmm"
-    ".........."
-    "..........";
+    "ccccddddpf"
+    "ccccddddpf"
+    "ccccddddpf"
+    "mmmmddddrs"
+    "mmmmddddrs"
+    "mmmmddddrs"
+    "mmmmddddrs"
+    "mmmmddddrs"
+    "mmmmddddrs"
+    "mmmmddddrs";
 
 #endif  /* _C8DEBUG_LAYOUT_H_ */
