@@ -7,7 +7,7 @@
 Cheap-8 is a chip-8 emulator with built-in TUI chip-8 ROM debugger with TUI.
 It uses SDL2 for video and audio and uses ncurses to handle debugger TUI.
 
-There's now way I can call this a finished product right now, let alone suggest that it is useful.
+There's no way I can call this a finished product right now, let alone suggest that it is useful.
 However:
 - With Cheap-8 you get a nice TUI debugger interface (xoxo) that let's you pause/resume a chip-8 ROM and run opcodes step-by-step
 - You can look into the whole ROM memory in it's raw hex form
@@ -35,12 +35,12 @@ And probably because of these problems/shortcomings:
 - There is no option to resize SDL2 window right now
 - Debugger, I think, lacks some features:
     - No way to change tact frequency for cheap-8
-    - Brosing disassembly and memory is quirky and a little inconvenient
+    - Browsing disassembly and memory is quirky and a little inconvenient
     - TBA
-- SDL2 screen is flickering or rather parts of it that are constantly redraw by cheap-8 ROMs. It'd be cool to find a way to circumvent it.
+- SDL2 screen is flickering or rather parts of it that are constantly redrawn by cheap-8 ROMs. It'd be cool to find a way to circumvent it.
 - Display sort of "THE END" type of screen when encounter jump onto self opcode
 - Add some stuff like change colors of display and stuff like that
-- And lots and lots of other stuff
+- Develop snapshot take/load mechanism
 
 ## P.S.
 
