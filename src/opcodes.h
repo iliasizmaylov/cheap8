@@ -1,9 +1,9 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: opcodes.h
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Declaration of all opcode handlers and opcode codes (no pun intended)
  * and also an Opcode data structure and a couple of constant values
  */
@@ -57,7 +57,7 @@ typedef enum {
 	OP_ADD_REG,             // 8XY4; Adds VY to VX
 	OP_SUB_REG,             // 8XY5; Subtracts VY from VX
 	OP_SHRIGHT_1,           // 8XY6; Stores LSB of VX in VF and shifts VX right by 1
-	OP_REV_SUB_REG,         // 8XY7; Sets VX = VY - VX; 
+	OP_REV_SUB_REG,         // 8XY7; Sets VX = VY - VX;
 	OP_SHLEFT_1,            // 8XYE; Stores MSB of VX in VF and shifts VX left by 1
 	OP_SKIP_NEQ_REG,        // 9XY0; Skip instruction if VX != VY
 	OP_SET_IDX,             // ANNN; Sets I = NNN

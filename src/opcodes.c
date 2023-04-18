@@ -1,84 +1,84 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: opcodes.c
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Opcode handlers and definition of all all opcodes' formats
  */
 
 #include "opcodes.h"
 
 const Opcode OPCODES[OPCODE_COUNT] = {
-	{0xFFFF, 0x00E0, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_CLEAR_SCREEN, 
+	{0xFFFF, 0x00E0, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_CLEAR_SCREEN,
             "clr", "Clear screen"},
-	{0xFFFF, 0x00EE, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_RETURN, 
+	{0xFFFF, 0x00EE, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_RETURN,
             "ret", "Return from subroutine"},
-	{0xF000, 0x1000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_JUMP, 
+	{0xF000, 0x1000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_JUMP,
             "jmp", "Jump to address NNN"},
-	{0xF000, 0x2000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_CALL_SUBR, 
+	{0xF000, 0x2000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_CALL_SUBR,
             "call", "Call subroutine at address NNN"},
-	{0xF000, 0x3000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_SKIP_EQ, 
+	{0xF000, 0x3000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_SKIP_EQ,
             "seq", "Skip next instruction if VX == NN"},
-	{0xF000, 0x4000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_SKIP_NEQ, 
+	{0xF000, 0x4000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_SKIP_NEQ,
             "sneq", "Skip next instruction if VX != NN"},
-	{0xF00F, 0x5000, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SKIP_EQ_REG, 
+	{0xF00F, 0x5000, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SKIP_EQ_REG,
             "vseq", "Skip next instruction if VX == VY"},
-	{0xF000, 0x6000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_SET_CONST, 
+	{0xF000, 0x6000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_SET_CONST,
             "set", "Set VX to NN"},
-	{0xF000, 0x7000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_ADD_CONST, 
+	{0xF000, 0x7000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_ADD_CONST,
             "add", "Adds NN to VX"},
-	{0xF00F, 0x8000, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SET_REG, 
+	{0xF00F, 0x8000, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SET_REG,
             "vset", "Sets VX to VY"},
-	{0xF00F, 0x8001, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_OR_REG, 
+	{0xF00F, 0x8001, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_OR_REG,
             "vor", "Sets VX |= VY"},
-	{0xF00F, 0x8002, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_AND_REG, 
+	{0xF00F, 0x8002, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_AND_REG,
             "vand", "Sets VX &= VY"},
-	{0xF00F, 0x8003, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_XOR_REG, 
+	{0xF00F, 0x8003, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_XOR_REG,
             "vxor", "Sets VX ^= VY"},
-	{0xF00F, 0x8004, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_ADD_REG, 
+	{0xF00F, 0x8004, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_ADD_REG,
             "add", "Adds VY to VX"},
-	{0xF00F, 0x8005, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SUB_REG, 
+	{0xF00F, 0x8005, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SUB_REG,
             "sub", "Subtracts VY from VX"},
-	{0xF00F, 0x8006, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SHRIGHT_1, 
+	{0xF00F, 0x8006, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SHRIGHT_1,
             "shr", "Stores LSB of VX in VF and shifts VX right by VY"},
-	{0xF00F, 0x8007, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_REV_SUB_REG, 
+	{0xF00F, 0x8007, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_REV_SUB_REG,
             "subr", "Sets VX = VY - VX"},
-	{0xF00F, 0x800E, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SHLEFT_1, 
+	{0xF00F, 0x800E, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SHLEFT_1,
             "shl", "Stores MSB of VX in VF and shifts VX left by VY"},
-	{0xF00F, 0x9000, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SKIP_NEQ_REG, 
+	{0xF00F, 0x9000, 0x0F00, 0x00F0, PARAMETER_UNUSED, handle_OP_SKIP_NEQ_REG,
             "vsneq", "Skip instruction if VX != VY"},
-	{0xF000, 0xA000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_SET_IDX, 
+	{0xF000, 0xA000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_SET_IDX,
             "iset", "Sets I = NNN"},
-	{0xF000, 0xB000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_JUMP_FROM_V0, 
+	{0xF000, 0xB000, PARAMETER_UNUSED, PARAMETER_UNUSED, 0x0FFF, handle_OP_JUMP_FROM_V0,
             "vjmp", "Jumps to address V0 + NNN"},
-	{0xF000, 0xC000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_SET_RANDOM, 
+	{0xF000, 0xC000, 0x0F00, PARAMETER_UNUSED, 0x00FF, handle_OP_SET_RANDOM,
             "rand", "Sets VX = rand() & NN"},
-	{0xF000, 0xD000, 0x0F00, 0x00F0, 0x000F, handle_OP_DRAW, 
+	{0xF000, 0xD000, 0x0F00, 0x00F0, 0x000F, handle_OP_DRAW,
             "draw", "Draws a sprite at coordinate VX, VY with a width of 8 and height of N"},
-	{0xF0FF, 0xE09E, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SKIP_KPRESS, 
+	{0xF0FF, 0xE09E, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SKIP_KPRESS,
             "skey", "Skip next insturction if a key stored in VX is pressed"},
-	{0xF0FF, 0xE0A1, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SKIP_NKPRESS, 
+	{0xF0FF, 0xE0A1, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SKIP_NKPRESS,
             "snkey", "Skip next insturction if a key stored in VX is NOT pressed"},
-	{0xF0FF, 0xF007, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SAVE_DELAY, 
+	{0xF0FF, 0xF007, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SAVE_DELAY,
             "vdly", "Set VX to the value of delay timer"},
-	{0xF0FF, 0xF00A, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_WAIT_KEY, 
+	{0xF0FF, 0xF00A, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_WAIT_KEY,
             "vkey", "Wait for key press and store the pressed key"},
-	{0xF0FF, 0xF015, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SET_DELAY, 
+	{0xF0FF, 0xF015, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SET_DELAY,
             "vdset", "Set delay timer to VX"},
-	{0xF0FF, 0xF018, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SET_SOUND, 
+	{0xF0FF, 0xF018, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SET_SOUND,
             "vsset", "Set sound timer to VX"},
-	{0xF0FF, 0xF01E, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_ADD_IDX, 
+	{0xF0FF, 0xF01E, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_ADD_IDX,
             "viadd", "Sets I += VX"},
-	{0xF0FF, 0xF029, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SET_IDX_SPRITE, 
+	{0xF0FF, 0xF029, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SET_IDX_SPRITE,
             "vispr", "Sets I to the location of the sprite for the character in VX"},
-	{0xF0FF, 0xF033, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SET_BCD, 
+	{0xF0FF, 0xF033, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_SET_BCD,
             "bcd", "Save binary-coded decimal of VX at I, I+1, I+2"},
-	{0xF0FF, 0xF055, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_DUMP_REGS, 
+	{0xF0FF, 0xF055, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_DUMP_REGS,
             "save", "Stores V0 to VX (including VX) in memory starting at address I"},
-	{0xF0FF, 0xF065, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_LOAD_REGS, 
+	{0xF0FF, 0xF065, 0x0F00, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_LOAD_REGS,
             "load", "Loads V0 to VX from memory starting from address I"},
-	{0xFFFF, 0x0000, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_CALL_MCR, 
+	{0xFFFF, 0x0000, PARAMETER_UNUSED, PARAMETER_UNUSED, PARAMETER_UNUSED, handle_OP_CALL_MCR,
             "nop", "Calls machine code routine NNN"}
 };
 
@@ -173,7 +173,7 @@ void handle_OP_SKIP_EQ(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 			SET_CUSTOM_FLAG(core, CUSTOM_FLAG_BAD_MEMORY);
 			return;
 		}
-		
+
 		core->PC += OPCODE_SIZE;
 	}
 }
@@ -184,7 +184,7 @@ void handle_OP_SKIP_NEQ(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 			SET_CUSTOM_FLAG(core, CUSTOM_FLAG_BAD_MEMORY);
 			return;
 		}
-		
+
 		core->PC += OPCODE_SIZE;
 	}
 }
@@ -313,7 +313,7 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 		QWORD newScreenRow = 0;
         QWORD newUpdateRow = 0;
         QWORD qsprite = core->memory[core->I + sprite];
-        
+
         // If we overlap the screen vertically
 		if (x + 8 > SCREEN_RESOLUTION_WIDTH)
             // Then draw the remainder starting from the left (overlap it visually)
@@ -321,7 +321,7 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
 		else
             // Otherwise draw the sprite row normally
 			newScreenRow |= qsprite << (SCREEN_RESOLUTION_WIDTH - x - 8);
-        
+
 		QWORD savedScreenRow = core->gfx[y];
 		core->gfx[y] ^= newScreenRow;
 
@@ -330,7 +330,7 @@ void handle_OP_DRAW(C8core *core, BYTE xParam, BYTE yParam, WORD nParam) {
             // then we need to set VF register
 			core->reg[REG_VF] = 1;
 		}
-		
+
 		y += 1;
 		if (y == height) {
 			y = 0;

@@ -1,9 +1,9 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: types.h
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Including libraries related to all code in cheap8
  * Also some macros including debug and assert type macros
  * Some typedefs
@@ -49,8 +49,9 @@
 #	define __FUNC__ __FUNCTION__
 #endif
 
-// All these typedefs are totally unnecessary but I created them to 
-// increase readablity for me due to my preference
+/* All these typedefs are totally unnecessary but I created them to
+ * increase readablity for me due to my preference
+ */
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t DWORD;
@@ -70,11 +71,13 @@ typedef enum {
 
 typedef BYTE VM_RESULT;
 
-// Both these macros are used to print debug info on exceptions (well, they do asserts, evidently)
-// VM_ASSERT should be called from within a function that returns VM_RESULT (or BYTE) type
-// XXX: I am honestly not sure if it's a good idea to handle asserts that way but currently I'm okay with that
-//      VM_ASSERT is intended for hard faults that program won't be able to recover from
-//      Whatever, I'm not that cool of a programmer anyway
+/* Both these macros are used to print debug info on exceptions (well, they do asserts, evidently)
+ * VM_ASSERT should be called from within a function that returns VM_RESULT (or BYTE) type
+ *
+ * XXX: I am honestly not sure if it's a good idea to handle asserts that way but currently I'm okay with that
+ * VM_ASSERT is intended for hard faults that program won't be able to recover from
+ * Whatever, I'm not that cool of a programmer anyway
+ */
 #define GET_EX_STR(x)	#x
 #define VM_ASSERT(ex) \
 	do {\

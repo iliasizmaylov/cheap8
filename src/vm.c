@@ -1,9 +1,9 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: vm.c
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Definition of function that handle most of the logic in the VM
  */
 
@@ -16,9 +16,9 @@
  * @param m_interface
  *  A reference to a pointer to struct VideoInterface to be initialized
  * @description
- *  Initializes the VideoInterface structure and prepares it for use with 
+ *  Initializes the VideoInterface structure and prepares it for use with
  *  selected video mode
- *  TODO:   Right now the only supported interface is SDL2 
+ *  TODO:   Right now the only supported interface is SDL2
  *          In the future the should be a (probably) curses interface
  *          CLI video output option
  */
@@ -70,7 +70,7 @@ VM_RESULT initVideoInterface(VideoInterface **m_interface) {
 // TODO: add support for curses VideoInterface later
 VM_RESULT clearScreen(VideoInterface *interface) {
 	VM_ASSERT(interface == NULL);
-    
+
     SDL_SetRenderDrawColor(interface->renderer, VIDEO_BLACK_PIXEL_RGBO);
     SDL_RenderClear(interface->renderer);
     SDL_RenderPresent(interface->renderer);
@@ -79,7 +79,7 @@ VM_RESULT clearScreen(VideoInterface *interface) {
 }
 
 /** redrawPixel
- * 
+ *
  * @param interface
  *  A pointer to VideoInterface struct to be used for output
  * @param screen
@@ -140,7 +140,7 @@ VM_RESULT redrawScreen(VideoInterface *interface, QWORD *screen) {
  * @param m_interface
  *  A reference to a pointer to struct VideoInterface to be uninitialized
  * @description:
- *  Destroys a connection to a video framework being used and frees memory 
+ *  Destroys a connection to a video framework being used and frees memory
  *  allocated to handle it (i.e. struct VideoInterface)
  *  TODO:   Add support for curses CLI video output
  */
@@ -167,7 +167,7 @@ VM_RESULT destroyVideoInterface(VideoInterface **m_interface) {
  * @param permutations
  *  Basically a sample rate of a sound
  * @param time
- *  A double float number representing a point at time at which current sample is 
+ *  A double float number representing a point at time at which current sample is
  *  to be created
  * @description:
  *  Used in processAudioCallback function to build a sample of a square wave at
@@ -198,13 +198,13 @@ void processAudioCallback(void *userData, Uint8 *bytestream, int bytes) {
 	Sint16 *stream = (Sint16*) bytestream;
 	int length = bytes / 2;
 	AudioCallbackData *cbData = (AudioCallbackData*) userData;
-	
+
 	int *currentSample = &cbData->currentSample;
 
 	for (int i = 0; i < length; i++, (*currentSample)++) {
 		double time = (double)(*currentSample) / (double)AUDIO_SAMPLES_PER_SECOND;
-		stream[i] = cbData->getWaveSample(DEFAULT_SQWAVE_TONE, 
-				DEFAULT_SQWAVE_VOLUME, 
+		stream[i] = cbData->getWaveSample(DEFAULT_SQWAVE_TONE,
+				DEFAULT_SQWAVE_VOLUME,
 				DEFAULT_SQWAVE_PERMUTATIONS,
 				time);
 	}
@@ -217,7 +217,7 @@ void processAudioCallback(void *userData, Uint8 *bytestream, int bytes) {
  *  audio interface to be initialized
  * @description:
  *  Allocates memory for an audio interface and then populates it with
- *  appropriate data and also preparing the actual media library to be 
+ *  appropriate data and also preparing the actual media library to be
  *  used with a given interface
  *  TODO: add support for other media libraries compatible with CLI only mode
  */
@@ -243,7 +243,7 @@ VM_RESULT initAudioInterface(AudioInterface **m_interface) {
 	interface->cbData.getWaveSample = getSquareWave;
 
 	interface->state = AUDIO_STATE_PAUSED;
-    
+
     interface->deviceId = SDL_OpenAudioDevice(NULL, 0,
                 &interface->specWant, &interface->specHave,
                 SDL_AUDIO_ALLOW_ANY_CHANGE);
@@ -318,7 +318,7 @@ void stopBeep(AudioInterface *interface) {
 	SDL_PauseAudioDevice(interface->deviceId, interface->state);
 }
 
-// =================================== VM Functions =================================== 
+// =================================== VM Functions ===================================
 
 /** initVM
  *
@@ -330,7 +330,7 @@ void stopBeep(AudioInterface *interface) {
  *  A byte representing 8 flags for VM
  * @description:
  *  Allocates memory and initializes VM with populating it's handler
- *  struct with appropriate data and calling all initializer functions 
+ *  struct with appropriate data and calling all initializer functions
  *  for each interface included in a VM (and according to the flags being set)
  */
 VM_RESULT initVM(VM **m_vm, char *ROMFileName, BYTE flags) {
@@ -382,7 +382,7 @@ VM_RESULT pollEvents(VM *vm, VM_RESULT dbgState) {
 	while (SDL_PollEvent(&ev)) {
 		if (ev.type == SDL_QUIT) {
 			return VM_RESULT_EVENT_QUIT;
-		} 
+		}
 
 		if (ev.type == SDL_KEYUP || ev.type == SDL_KEYDOWN) {
 			if (ev.type == SDL_KEYUP) {
@@ -438,7 +438,7 @@ VM_RESULT runVM(VM *vm) {
 
 	while (runningState == VM_RESULT_SUCCESS) {
 		currentTicks = SDL_GetTicks64();
-        
+
         if (dbgHeld == VM_RESULT_SUCCESS) {
             nextTicks = vm->core->prevCycleTicks + CORE_TICKS_PER_CYCLE;
             nextTimerTicks = vm->core->prevTimerTicks + CORE_TICKS_PER_CYCLE;
@@ -484,7 +484,7 @@ VM_RESULT runVM(VM *vm) {
             else
                 stopBeep(vm->audio);
         }
-        
+
         runningState = pollEvents(vm, dbgHeld);
 	}
 
@@ -496,7 +496,7 @@ VM_RESULT runVM(VM *vm) {
  * @param m_vm
  *  A reference to a pointer to a VM struct that is to be destroyed
  * @description
- *  A destructor for a VM itself that calls all other destructors for 
+ *  A destructor for a VM itself that calls all other destructors for
  *  all components and then destroyes the VM itself
  */
 VM_RESULT destroyVM(VM **m_vm) {

@@ -1,6 +1,6 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: c8core.c
  * License: DWYW - "Do Whatever You Want"
  *
@@ -16,7 +16,7 @@
  *  a given ROM filed
  * @param: FILE *ROM
  *  File handler for a ROM file to be loaded
- * 
+ *
  * Loads contents of a ROM file into core memory
  * Called from initCore() function
  */
@@ -41,7 +41,7 @@ VM_RESULT loadROM(C8core *core, FILE *ROM) {
 }
 
 /** initCore
- * 
+ *
  * @param: C8core **m_core
  *  C8Core struct pointer passed by refernce
  *  so it could be allocated and initialized

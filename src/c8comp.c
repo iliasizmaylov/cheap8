@@ -1,9 +1,9 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: c8comp.c
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Functions and data structures for a cheap8 compiler
  */
 
@@ -12,11 +12,11 @@
 /**
  * Although maximum possible amount of instructions is definitely less
  * than MEMORY_RANGE_PROGRAM_MAX I decided to declare the array of
- * disassembled instructions exactly the size of 0 to max program memory 
+ * disassembled instructions exactly the size of 0 to max program memory
  * so that it's easy to implement sort of a "goto addr" functionality
  *
  * Therefore, since each instruction is 2 bytes, this array will be traversed
- * via get/find/etc. function and will be static so as not be accessed directly 
+ * via get/find/etc. function and will be static so as not be accessed directly
  * fron the outside
  */
 static Instruction *g_disasmem[MEMORY_RANGE_PROGRAM_MAX + 1];
@@ -132,7 +132,7 @@ static void setAsmstr(Instruction *instr) {
  * @param: raw
  *  Raw representation (2 bytes) of an instruction
  * @param: out
- *  Pointer to Instruction struct that is to be populated from 
+ *  Pointer to Instruction struct that is to be populated from
  *  raw data
  * @description:
  *  Populates out pointer with data that describes a current instruction
@@ -196,7 +196,7 @@ VM_RESULT destroyDisassembler() {
         return VM_RESULT_SUCCESS;
 
     for (int i = MEMORY_RANGE_PROGRAM_MIN; i <= MEMORY_RANGE_PROGRAM_MAX; i += OPCODE_SIZE) {
-        free(g_disasmem[i]); 
+        free(g_disasmem[i]);
     }
 
     return VM_RESULT_SUCCESS;

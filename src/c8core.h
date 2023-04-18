@@ -1,10 +1,10 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: c8core.h
  * License: DWYW - "Do Whatever You Want"
  *
- * Declaring and describing all functions 
+ * Declaring and describing all functions
  * and data structures for a Cheap8 core
  */
 
@@ -50,23 +50,23 @@
 // Enum to easily access and identifiy register
 // in a register array in the C8core struct
 typedef enum {
-	REG_V0, 
-	REG_V1, 
-	REG_V2, 
-	REG_V3, 
-	REG_V4, 
-	REG_V5, 
-	REG_V6, 
-	REG_V7, 
-	REG_V8, 
-	REG_V9, 
-	REG_VA, 
-	REG_VB, 
-	REG_VC, 
-	REG_VD, 
-	REG_VE, 
+	REG_V0,
+	REG_V1,
+	REG_V2,
+	REG_V3,
+	REG_V4,
+	REG_V5,
+	REG_V6,
+	REG_V7,
+	REG_V8,
+	REG_V9,
+	REG_VA,
+	REG_VB,
+	REG_VC,
+	REG_VD,
+	REG_VE,
 	REG_VF,
-    
+
     // Token enum entry that holds a count of all registers available
 	GENERAL_PURPOSE_REGISTERS
 } Regname;

@@ -1,9 +1,9 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: input.h
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Various consts and function declaration for input handling
  */
 

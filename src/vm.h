@@ -1,9 +1,9 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: vm.h
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Declaration of function that handle most of the logic in the VM
  */
 

@@ -1,7 +1,7 @@
 # =========================================================================
-# 
+#
 # Cheap-8 Makefile
-# 
+#
 #	TODO: (list of "maybes")
 #		- Maybe add separate targets to compile with or without debugger
 #		- Maybe add a separate target for cheap8 compiler after it's developed
@@ -31,7 +31,7 @@ OBJECTS		:= $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 
 # Compiling objects file into an executable (or a binary)
 $(BINDIR)/$(TARGET): $(OBJECTS)
-	@mkdir -p $(BINDIR) 
+	@mkdir -p $(BINDIR)
 	@$(LINKER) $(OBJECTS) $(LFLAGS) -o $@
 	@echo "Linking done"
 
@@ -52,4 +52,4 @@ clean:
 remove: clean
 	@rm -f $(BINDIR)/$(TARGET)
 	@echo "Executable successfully removed"
-	
+

@@ -1,6 +1,6 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: c8debug.h
  * License: DWYW - "Do Whatever You Want"
  *

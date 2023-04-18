@@ -60,13 +60,13 @@ const struct program_info* const current_version = &cheap8_info;
 
 // Just prints the help message
 void print_help() {
-    printf("Program: %s (ver. %s)\nDescription: %s\nOptions:\n", 
-            current_version->name, 
-            current_version->version, 
-            current_version->description); 
+    printf("Program: %s (ver. %s)\nDescription: %s\nOptions:\n",
+            current_version->name,
+            current_version->version,
+            current_version->description);
 
     for (BYTE i = 0; i < PROGRAM_PARAM_COUNT; i++) {
-        printf("\t-%c, %s\n", 
+        printf("\t-%c, %s\n",
                 params[i]->letter,
                 params[i]->description);
     }

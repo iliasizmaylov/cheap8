@@ -1,9 +1,9 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: c8debug.h
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Functions and data structures for a cheap8 debugger.
  */
 
@@ -20,18 +20,27 @@
 
 #include <locale.h>
 
+/* Offsets from screen borders at which to display TUI
+ * Probably will both stay equal to 1 since they exist
+ * just to not let TUI sort of "stick" awkwardly to the
+ * edges of a screen
+ */
 #define SCREEN_CONTENT_X_OFFSET         1
 #define SCREEN_CONTENT_Y_OFFSET         1
 
-#define DEBUGGER_PAUSE_TICKS            10
-
+/* "Override" for native ncurses LINES that
+ * accounts for SCREEN_CONTENT_Y_OFFSET
+ */
 #define S_LINES \
     (LINES - SCREEN_CONTENT_Y_OFFSET * 2)
 
+/* "Override" for native ncurses COLS that
+ * accounts for SCREEN_CONTENT_X_OFFSET
+ */
 #define S_COLS \
     (COLS - SCREEN_CONTENT_X_OFFSET * 2)
 
-// Colors for ncurses interface
+/* Colors for ncurses interface */
 enum debuggerColorPairs {
     WINDOW_COLOR_START_NR = 1,
 
@@ -54,34 +63,36 @@ enum debuggerColorPairs {
 };
 
 typedef struct _DebuggerColorPair {
-    short fc;
-    short bc;
+    short fc;   /* Foreground color */
+    short bc;   /* Background color */
 } DebuggerColorPair;
 
-// Offsets for drawing windows and text
+/* Offsets for drawing windows and text */
 #define WINDOW_TITLE_OFFSET				4
 #define WINDOW_CONTENT_X_OFFSET			2
 #define WINDOW_CONTENT_Y_OFFSET			2
 
-// Offset for a memory window content
+/* Offset for a memory window content */
 #define WINDOW_MEMORY_COLUMN_OFFSET		4
 
-// Special characters for drawing memory window
+/* Special characters for drawing memory window */
 #define WINDOW_MEMORY_NO_MEM_CHAR		"~~ "
 #define WINDOW_MEMORY_END_CHAR			"END"
 
-// Enum for a more convenient way to identify and refer to debugger TUI windows
+/* Enum for a more convenient way to identify
+ * and refer to debugger TUI windows
+ */
 typedef enum {
-	DEBUG_WINDOW_REGISTERS = 0,         // Window showing state of all registers
-	DEBUG_WINDOW_MEMORY,            // Window that acts as a memory explorer
-	DEBUG_WINDOW_CUSTOM_FLAGS,      // Window that shows the state of custom flags
-    DEBUG_WINDOW_DISASM,            // Disassembler window
+	DEBUG_WINDOW_REGISTERS = 0,
+	DEBUG_WINDOW_MEMORY,
+	DEBUG_WINDOW_CUSTOM_FLAGS,
+    DEBUG_WINDOW_DISASM,
     DEBUG_WINDOW_VM,
     DEBUG_WINDOW_PREVIEW,
     DEBUG_WINDOW_STACK,
     DEBUG_WINDOW_CURRENT_STATE,
 
-	DEBUG_WINDOW_COUNT              // A placeholder that contains a count of all aforementioned windows
+	DEBUG_WINDOW_COUNT
 } DebuggerWindows;
 
 typedef struct _DebuggerWindow DebuggerWindow;
@@ -104,7 +115,7 @@ void updatePreview(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateStack(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 void updateCurrentState(Debugger *dbg, DebuggerWindow *window, const C8core *core);
 
-// Holds all update handlers for debugger windows
+/* Holds all update handlers for debugger windows */
 static const WINDOW_UPDATE g_debuggerUpdaters[DEBUG_WINDOW_COUNT] = {
 	updateRegisters,
 	updateMemory,
@@ -180,13 +191,13 @@ static const DebuggerMenu g_menus[DEBUG_WINDOW_COUNT] = {
         .navhandler = NULL
     },
     /* DEBUG_WINDOW_MEMORY */ {
-        .name = "Memory", .global_opts = g_opts, 
+        .name = "Memory", .global_opts = g_opts,
         .opts = w_mem_opts, .optcount = WINDOW_MEMORY_OPTION_COUNT,
         .navhandler = wNavHandler_memory
     },
     /* DEBUG_WINDOW_CUSTOM_FLAGS */ {
         .name = "Custom Flags", .global_opts = g_opts, .opts = NULL, .optcount = 0,
-        .navhandler = NULL 
+        .navhandler = NULL
     },
     /* DEBUG_WINDOW_DISASM */ {
         .name = "Disassembly", .global_opts = g_opts,
@@ -225,34 +236,39 @@ typedef enum {
     WINDOW_SIDES
 } WindowSides;
 
-// A struct defining all debugger window properties
+/* A struct defining all debugger window properties */
 typedef struct _DebuggerWindow {
-	int lines;          // Number of lines it occupies on the screen (height)
-	int columns;        // Number of columns it occupies on the screen (width)
-	int xPos;           // Starting position of a window at x axis
-	int yPos;           // Starting position of a window at y axis
+	int lines;              /* Number of lines it occupies on the screen (height) */
+	int columns;            /* Number of columns it occupies on the screen (width) */
+	int xPos;               /* Starting position of a window at x axis */
+	int yPos;               /* Starting position of a window at y axis */
 
-	int textLines;      // Number of lines (height) the actual content occupies within the window
+	int textLines;          /* Number of lines (height) the actual content occupies within the window */
 
-	const char *title;  // Window title
-    char literal;       // A literal corresponding to current window in c8debug_layout.h
+	const char *title;      /* Window title */
+    char literal;           /* A literal corresponding to current window in c8debug_layout.h */
 
-	WINDOW *win;        // ncurses window handler
-    PANEL *pan;
+	WINDOW *win;            /* ncurses window handler */
+    PANEL *pan;             /* ncurses panel handler */
 
-    DebuggerWindow *left;
-    DebuggerWindow *right;
-    DebuggerWindow *up;
-    DebuggerWindow *down;
+    DebuggerWindow *left;   /* Pointer to left adjacent window */
+    DebuggerWindow *right;  /* Pointer to right adjacent window */
+    DebuggerWindow *up;     /* Pointer to top adjacent window */
+    DebuggerWindow *down;   /* Pointer to bottom adjacent window*/
+
+    /* Array of pointers to all four adjacent windows */
     DebuggerWindow *adj[WINDOW_SIDES];
 
-    BYTE flags;
+    BYTE flags;             /* 8 Debugger flags */
 
+    /* Pointer to struct describing a footer menu state
+     * for when this window is selected
+     */
     const DebuggerMenu *menu;
 
-    void *auxdata;
+    void *auxdata;          /* Pointer to arbitrary data that can vary from window to window*/
 
-    // Pointer to an update function
+    /* Pointer to an update function */
 	WINDOW_UPDATE updateHandler;
 } DebuggerWindow;
 
@@ -328,7 +344,7 @@ typedef enum {
 
 static DebuggerPopup g_popups[NR_DEBUGGER_POPUPS] = {
     /* DEBUGGER_POPUP_MEM_GOTO */ {
-        .title = "Go to Memory Address", .hdraw = wPopupDraw_findmem, 
+        .title = "Go to Memory Address", .hdraw = wPopupDraw_findmem,
         .hsave = wPopupSave_findmem, .field_count = 1
     },
     /* DEBUGGER_POPUP_DIS_GOTO */ {
@@ -337,6 +353,9 @@ static DebuggerPopup g_popups[NR_DEBUGGER_POPUPS] = {
     }
 };
 
+/* This macro makes DebuggerWindow->auxdata void pointer initalization
+ * somewhat abstract
+ */
 #define __INIT_AUX_DATA(type) \
     BYTE IS_AUX_NEW = 0; \
     if (window->auxdata == NULL) { \
@@ -346,10 +365,19 @@ static DebuggerPopup g_popups[NR_DEBUGGER_POPUPS] = {
     type *AUX_DATA = (type*)window->auxdata; \
     if (IS_AUX_NEW)
 
+/* Indicates if debugger is paused i.e. in step mode */
 #define DEBUGGER_FLAG_STEP_MODE         (1 << 0)
+
+/* Indicates if there is debugger window selected and probably edited */
 #define DEBUGGER_FLAG_EDITING           (1 << 1)
+
+/* Indicates if there's an active popup window that should be displayed */
 #define DEBUGGER_FLAG_POPUP             (1 << 5)
+
+/* Indicates if a user requested a next step when in step mode */
 #define DEBUGGER_FLAG_NEXT_STEP         (1 << 6)
+
+/* Indicates if debugger recieved a Quit command from user */
 #define DEBUGGER_FLAG_EXIT              (1 << 7)
 
 #define DEBUGGER_MENU_X_POS             SCREEN_CONTENT_X_OFFSET
@@ -357,22 +385,24 @@ static DebuggerPopup g_popups[NR_DEBUGGER_POPUPS] = {
 #define DEBUGGER_MENU_ROWS              S_COLS
 #define DEBUGGER_MENU_COLS              1
 
-// A struct (should be a singleton) that defines the whole debugger context
+/* A struct (should be a singleton) that defines the whole debugger context */
 typedef struct _Debugger {
-	DebuggerWindow *windows[DEBUG_WINDOW_COUNT];    // Pointer to all DebuggerWindow structs
-	const C8core *core;                             // Pointer to a cheap8 core
-	BYTE flags;                                     // 8 debugger flags
+    /* Pointer to all DebuggerWindow structs */
+	DebuggerWindow *windows[DEBUG_WINDOW_COUNT];
 
-    DebuggerWindow *current;
-    int lastInput;
+	const C8core *core;         /* Pointer to a cheap8 core */
+	BYTE flags;                 /* 8 debugger flags */
 
-    WINDOW *menuwin;
+    DebuggerWindow *current;    /* Pointer to currently selected window */
+    int lastInput;              /* Last keyboard input */
 
-    DebuggerPopup *popup;
-    WINDOW *popup_win;
-    WINDOW *popup_sub;
-    PANEL *popup_pan;
-    PANEL *popup_sub_pan;
+    WINDOW *menuwin;            /* ncurses WINDOW handler for debugger menu */
+
+    DebuggerPopup *popup;       /* Pointer to a current invoked popup menu */
+    WINDOW *popup_win;          /* ncurses WINDOW for a current popup */
+    WINDOW *popup_sub;          /* ncurses WINDOW for a current popup's subwindow*/
+    PANEL *popup_pan;           /* ncurses PANEL for a current popup */
+    PANEL *popup_sub_pan;       /* ncurses PANEL for a current popup's subwindow */
 } Debugger;
 
 void initMenu(Debugger *dbg);

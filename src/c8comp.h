@@ -1,9 +1,9 @@
 /**
  * Cheap-8: a chip-8 emulator
- * 
+ *
  * File: c8comp.h
  * License: DWYW - "Do Whatever You Want"
- * 
+ *
  * Functions and data structures for a cheap8 compiler
  */
 
