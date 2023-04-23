@@ -884,7 +884,7 @@ VM_RESULT updateDebugger(Debugger *dbg) {
                 werase(dbg->windows[i]->win);
                 dbg->windows[i]->updateHandler(dbg, dbg->windows[i], dbg->core);
                 drawWindowBox(dbg, dbg->windows[i]);
-                wnoutrefresh(dbg->windows[i]->win);
+                wrefresh(dbg->windows[i]->win);
             }
         }
     }
